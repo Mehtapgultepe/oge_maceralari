@@ -130,9 +130,9 @@ body{touch-action:manipulation;-webkit-text-size-adjust:100%}
 .fjoy i{position:absolute;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.45);border:2px solid rgba(255,255,255,.85);left:70px;bottom:70px;transform:translate(-50%,50%);display:block}
 .fjoy::before{content:"";position:absolute;left:70px;bottom:70px;width:130px;height:130px;border-radius:50%;border:2px dashed rgba(255,255,255,.6);transform:translate(-50%,50%)}
 .flook{position:absolute;right:0;top:0;width:58%;height:100%;pointer-events:auto;touch-action:none}
-.fbtns{position:absolute;right:62px;bottom:64px;display:grid;grid-template-columns:repeat(3,auto);gap:10px;align-items:end;pointer-events:none}
+.fbtns{position:absolute;right:62px;bottom:64px;display:grid;grid-template-columns:repeat(4,auto);gap:10px;align-items:end;pointer-events:none}
 .fbtns button{pointer-events:auto;width:56px;height:56px;min-height:0;padding:0;border-radius:50%;background:rgba(255,255,255,.4);border:2px solid rgba(255,255,255,.85);color:#fff;font-size:20px;text-shadow:0 1px 3px rgba(0,0,0,.5);touch-action:none}
-.fbtns .fire{grid-column:3;grid-row:1/3;width:84px;height:84px;background:rgba(226,75,74,.55);font-size:16px}
+.fbtns .fire{grid-column:4;grid-row:1/3;width:84px;height:84px;background:rgba(226,75,74,.55);font-size:16px}
 @media (any-pointer:coarse){.fammo{bottom:auto;top:56px;right:16px}.fhp{bottom:auto;top:56px}}
 .touch{display:none;gap:8px;margin-top:12px;flex-wrap:wrap}
 .touch button{flex:1 1 60px;font-size:20px;min-height:58px;user-select:none;-webkit-user-select:none;touch-action:none}
@@ -151,11 +151,11 @@ body{touch-action:manipulation;-webkit-text-size-adjust:100%}
       <div class="fhp"><span>Can</span><b>100</b><i></i></div>
       <div class="fammo"><span></span><b></b></div>
       <div class="fban" hidden></div>
-      <button class="flock" hidden>Oynamak için tıkla<small>WASD hareket · Fare nişan · Tık ateş · Sağ tık dürbün · R doldur · 1 2 3 silah · Space zıpla · Shift sessiz yürü · M ses · Esc imleç</small></button>
+      <button class="flock" hidden>Oynamak için tıkla<small>WASD hareket · Fare nişan · Tık ateş · Sağ tık dürbün · R doldur · 1 2 3 silah · 4 karambit · Y incele · Space zıpla · Shift sessiz yürü · M ses · Esc imleç</small></button>
       <button class="frem primary" hidden>Rövanş</button>
       <button class="fmute" id="fmute" aria-label="Sesi kapat">🔊</button>
       <div class="ftouch"><div class="fjoy" id="fjoy"><i id="fknob"></i></div><div class="flook" id="flook"></div>
-        <div class="fbtns"><button id="fbW" aria-label="Silah değiştir">⇄</button><button id="fbR" aria-label="Doldur">R</button><button id="fbS" aria-label="Dürbün">◎</button><button id="fbJ" aria-label="Zıpla">▲</button><button id="fbF" class="fire" aria-label="Ateş">Ateş</button></div></div>
+        <div class="fbtns"><button id="fbW" aria-label="Silah değiştir">⇄</button><button id="fbY" aria-label="İncele">✦</button><button id="fbR" aria-label="Doldur">R</button><button id="fbS" aria-label="Dürbün">◎</button><button id="fbJ" aria-label="Zıpla">▲</button><button id="fbF" class="fire" aria-label="Ateş">Ateş</button></div></div>
     </div>
     <div class="tpad" id="tpad"><div class="tl"><button data-k="L" aria-label="Sol">◀</button><button data-k="R" aria-label="Sağ">▶</button></div><div class="tr"><button data-k="D" class="t-rope" aria-label="Sabitlen">▼</button><button data-k="Z" class="t-mag" aria-label="Çek">Çek</button><button data-k="X" class="t-mag" aria-label="İt">İt</button><button data-k="U" class="tbig" aria-label="Zıpla">▲</button></div></div>
     <div class="rot" id="rot">Daha rahat oynamak için tableti yan çevir</div>
@@ -439,13 +439,14 @@ function computeSwitches(lv,st,bodies){
 // ===== 1v1 KAPIŞMA (3D, Three.js) =====
 const FPS=(()=>{
   let THREE=null,renderer=null,scene=null,camera=null,cv3=null,ready=false,active=false,loading=null;
-  const boxes=[],rayTargets=[];let peerG=null,peerBody=null,peerHead=null,peerSprite=null,gunG=null,flash=null,tracer=null,peerFlash=null;
+  const boxes=[],rayTargets=[];let peerGun=null,peerKnife=null,peerG=null,peerBody=null,peerHead=null,peerSprite=null,gunG=null,flash=null,tracer=null,peerFlash=null;
   const WEP=[
     {name:'Tüfek',auto:true,rate:.1,dmg:24,head:2.5,mag:30,rel:2.2,spread:.012,move:.05,kick:.018,col:0x3b3f4a},
     {name:'Tabanca',auto:false,rate:.17,dmg:30,head:2.5,mag:12,rel:1.5,spread:.008,move:.03,kick:.03,col:0x6b6f7a},
-    {name:'Keskin nişancı',auto:false,rate:1.2,dmg:85,head:2.4,mag:5,rel:2.8,spread:.09,move:.15,kick:.06,col:0x2f5d3a,scope:true}
+    {name:'Keskin nişancı',auto:false,rate:1.2,dmg:85,head:2.4,mag:5,rel:2.8,spread:.09,move:.15,kick:.06,col:0x2f5d3a,scope:true},
+    {name:'Karambit',melee:true,auto:true,rate:.42,heavyRate:1.0,dmg:40,heavy:65,head:1.5,mag:0,rel:0,range:2.1,col:0xc0c6d4}
   ];
-  const S={x:0,y:0,z:0,vy:0,ground:true,yaw:0,pitch:0,w:0,ammo:[30,12,5],cool:0,relT:0,recoil:0,zoom:false,
+  const S={x:0,y:0,z:0,vy:0,ground:true,yaw:0,pitch:0,w:0,ammo:[30,12,5,0],cool:0,insT:0,insD:1,swT:0,heavyT:0,relT:0,recoil:0,zoom:false,
     rd:1,mt:1,dmg:0,jx:0,jy:0,tj:false,touch:false,sn:0,wins:{},ended:false,endT:0,banner:'',bannerT:0,hitT:0,hurtT:0,lastHp:100,firing:false,locked:false,matchOver:false};
   let P=null,role=0,peerName='Rakip',peerSkin=1,mySkin=0,lastPeerSn=0,stepT=0,pStepT=0,pLast=null;
   const K={};
@@ -490,7 +491,8 @@ const FPS=(()=>{
     peerBody=new THREE.Mesh(new THREE.CylinderGeometry(.32,.36,1.25,10),new THREE.MeshLambertMaterial({color:0x378ADD}));peerBody.position.y=.63;peerG.add(peerBody);
     peerHead=new THREE.Mesh(new THREE.SphereGeometry(.3,10,8),new THREE.MeshBasicMaterial({visible:false}));peerHead.position.y=1.55;peerG.add(peerHead);
     peerSprite=new THREE.Sprite(new THREE.SpriteMaterial({map:skinTexture(peerSkin)}));peerSprite.scale.set(.85,.85,1);peerSprite.position.y=1.58;peerG.add(peerSprite);
-    const pg=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,.6),new THREE.MeshLambertMaterial({color:0x333333}));pg.position.set(.25,1.05,-.35);peerG.add(pg);
+    const pg=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,.6),new THREE.MeshLambertMaterial({color:0x333333}));pg.position.set(.25,1.05,-.35);peerG.add(pg);peerGun=pg;
+    peerKnife=new THREE.Mesh(new THREE.BoxGeometry(.03,.06,.3),new THREE.MeshLambertMaterial({color:0xc0c6d4}));peerKnife.position.set(.28,1.0,-.25);peerKnife.visible=false;peerG.add(peerKnife);
     peerFlash=new THREE.Mesh(new THREE.SphereGeometry(.12,6,6),new THREE.MeshBasicMaterial({color:0xffe27a}));peerFlash.position.set(.25,1.05,-.7);peerFlash.visible=false;peerG.add(peerFlash);
     peerG.visible=false;scene.add(peerG);
     // silah
@@ -500,6 +502,21 @@ const FPS=(()=>{
   }
   function buildGun(){
     while(gunG.children.length)gunG.remove(gunG.children[0]);
+    gunG.rotation.set(0,0,0);knifePivot=null;
+    if(S.w===3){
+      const steel=new THREE.MeshStandardMaterial?new THREE.MeshPhongMaterial({color:0xdfe4ee,specular:0xffffff,shininess:90}):new THREE.MeshLambertMaterial({color:0xdfe4ee});
+      const grip=new THREE.MeshLambertMaterial({color:0x7F77DD}),dark=new THREE.MeshLambertMaterial({color:0x26215C});
+      const holder=new THREE.Group();holder.rotation.y=Math.PI/2;gunG.add(holder);
+      const ring={x:-.13,y:-.035};
+      knifePivot=new THREE.Group();knifePivot.position.set(ring.x,ring.y,0);holder.add(knifePivot);
+      const parts=new THREE.Group();parts.position.set(-ring.x,-ring.y,0);knifePivot.add(parts);
+      const sh=new THREE.Shape();sh.moveTo(0,0);sh.quadraticCurveTo(.15,.035,.2,-.1);sh.quadraticCurveTo(.17,-.02,.03,-.035);sh.lineTo(0,-.02);sh.lineTo(0,0);
+      const blade=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:.006,bevelEnabled:true,bevelThickness:.002,bevelSize:.002,bevelSegments:1,curveSegments:14}),steel);blade.position.z=-.003;parts.add(blade);
+      const edge=new THREE.Mesh(new THREE.BoxGeometry(.02,.004,.01),dark);edge.position.set(.005,-.01,0);parts.add(edge);
+      const handle=new THREE.Mesh(new THREE.BoxGeometry(.11,.032,.024),grip);handle.position.set(-.06,-.012,0);handle.rotation.z=-.15;parts.add(handle);
+      const rg=new THREE.Mesh(new THREE.TorusGeometry(.022,.0065,8,18),steel);rg.position.set(ring.x,ring.y,0);parts.add(rg);
+      flash=new THREE.Object3D();gunG.add(flash);
+      gunG.position.set(.2,-.2,-.32);return;}
     const w=WEP[S.w],m=new THREE.MeshLambertMaterial({color:w.col}),dark=new THREE.MeshLambertMaterial({color:0x222631});
     const len=S.w===1?.32:S.w===2?.95:.7;
     const body=new THREE.Mesh(new THREE.BoxGeometry(.09,.11,len),m);body.position.set(0,0,-len/2);gunG.add(body);
@@ -511,11 +528,12 @@ const FPS=(()=>{
   }
   // ---- giriş ----
   const onKey=(e,down)=>{if(!active)return;K[e.code]=down;
-    if(down){if(e.code==='Digit1')swap(0);if(e.code==='Digit2')swap(1);if(e.code==='Digit3')swap(2);if(e.code==='KeyR')reload();if(e.code==='KeyM')setMute(!muted);
+    if(down){if(e.code==='Digit1')swap(0);if(e.code==='Digit2')swap(1);if(e.code==='Digit3')swap(2);if(e.code==='Digit4')swap(3);if(e.code==='KeyY')inspect();if(e.code==='KeyR')reload();if(e.code==='KeyM')setMute(!muted);
       if(['Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code))e.preventDefault();}};
   addEventListener('keydown',e=>onKey(e,true));addEventListener('keyup',e=>onKey(e,false));
-  function swap(i){if(i===S.w)return;S.w=i;S.relT=0;S.cool=.35;S.zoom=false;buildGun();swapSnd();}
-  function reload(){const w=WEP[S.w];if(S.relT>0||S.ammo[S.w]>=w.mag)return;S.relT=w.rel;S.zoom=false;reloadSnd(S.w);}
+  function swap(i){if(i===S.w)return;S.w=i;S.relT=0;S.cool=.35;S.zoom=false;S.insT=0;buildGun();if(i===3)knifeDraw();else swapSnd();}
+  function inspect(){if(S.relT>0||S.insT>0)return;S.zoom=false;S.insD=S.w===3?2.3:1.7;S.insT=S.insD;if(S.w===3)knifeSpin();}
+  function reload(){const w=WEP[S.w];if(w.melee||S.relT>0||S.ammo[S.w]>=w.mag)return;S.insT=0;S.relT=w.rel;S.zoom=false;reloadSnd(S.w);}
   // ---- ses motoru (sentez) ----
   let AC=null,NB=null,MST=null,muted=false;
   try{muted=localStorage.getItem('cl_mute')==='1';}catch(e){}
@@ -562,14 +580,15 @@ const FPS=(()=>{
   // ---- durum ----
   const hpMe=()=>Math.max(0,100-((P&&P.rd===S.rd&&P.mt===S.mt)?P.dmg:0));
   const hpPeer=()=>Math.max(0,100-S.dmg);
-  function spawn(){const s=SP[role];S.x=s.x;S.z=s.z;S.y=0;S.vy=0;S.yaw=s.yaw;S.pitch=0;S.ammo=[30,12,5];S.relT=0;S.zoom=false;S.lastHp=100;}
+  function spawn(){const s=SP[role];S.x=s.x;S.z=s.z;S.y=0;S.vy=0;S.yaw=s.yaw;S.pitch=0;S.ammo=[30,12,5,0];S.relT=0;S.insT=0;S.zoom=false;S.lastHp=100;}
   function newRound(rd,mt){S.rd=rd;S.mt=mt;S.dmg=0;S.ended=false;spawn();banner('Raund '+rd,1.2);}
   function banner(t,d){S.banner=t;S.bannerT=d;}
   function scores(){let a=0,b=0;for(const k in S.wins){if(S.wins[k]==='me')a++;else if(S.wins[k]==='peer')b++;}return[a,b];}
   // ---- ateş ----
   const ray=()=>new THREE.Raycaster();
-  function shoot(){
-    const w=WEP[S.w];if(S.relT>0||S.cool>0)return;
+  function shoot(heavy){
+    const w=WEP[S.w];if(S.relT>0||S.cool>0)return;S.insT=0;
+    if(w.melee){melee(!!heavy);return;}
     if(S.ammo[S.w]<=0){dryFire();reload();return;}
     S.ammo[S.w]--;S.cool=w.rate;S.sn++;
     const moving=(K.KeyW||K.KeyA||K.KeyS||K.KeyD)||Math.hypot(S.jx,S.jy)>.3||!S.ground;
@@ -588,6 +607,42 @@ const FPS=(()=>{
     gunSound(S.w,S.w===2?1:.85,0);
     if(S.ammo[S.w]===0)reload();
   }
+  let knifePivot=null;
+  function melee(heavy){
+    const w=WEP[3];if(S.cool>0)return;S.cool=heavy?w.heavyRate:w.rate;S.swT=heavy?.45:.28;S.heavyT=heavy?1:0;S.sn++;
+    const dir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+    const rc=ray();rc.set(camera.getWorldPosition(new THREE.Vector3()),dir);rc.far=w.range;
+    const targets=rayTargets.slice();if(peerG.visible&&hpPeer()>0&&!S.ended)targets.push(peerHead,peerBody);
+    const hits=rc.intersectObjects(targets,false);swingSnd(.7,0);
+    if(hits.length){const h=hits[0];
+      if((h.object===peerHead||h.object===peerBody)&&hpMe()>0){
+        // arkadan vuruş: rakibin baktığı yön ile benim yönüm aynıysa
+        let back=false;if(P){const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),dx=P.x-S.x,dz=P.z-S.z,l=Math.hypot(dx,dz)||1;back=(fx*dx+fz*dz)/l>.5;}
+        let d=heavy?w.heavy:w.dmg;if(h.object===peerHead)d=Math.round(d*w.head);if(back)d=heavy?100:Math.max(d,80);
+        S.dmg=Math.min(100,S.dmg+d);S.hitT=.25;S.lastHit=h.object===peerHead||back?'head':'body';stabSnd();hitSnd(S.lastHit==='head');}
+      else wallSnd();}
+  }
+  function animGun(dt){
+    if(S.insT>0)S.insT=Math.max(0,S.insT-dt);if(S.swT>0)S.swT=Math.max(0,S.swT-dt);
+    const sm=x=>x<=0?0:x>=1?1:x*x*(3-2*x);
+    let rx=0,ry=0,rz=0,px,py,pz,spin=0;
+    if(S.w===3){px=.17;py=-.17-S.recoil*.4;pz=-.36;rx=.1;ry=.55;
+      if(S.insT>0){const p=1-S.insT/S.insD,inW=sm(p<.15?p/.15:p>.85?(1-p)/.15:1);
+        px+=(.05-px)*inW;py+=(-.09-py)*inW;pz+=(-.55-pz)*inW;ry+=.65*inW;rx+=-.1*inW;
+        if(p>.12&&p<.55){const q=(p-.12)/.43;spin=-(q<.5?2*q*q:1-Math.pow(-2*q+2,2)/2)*Math.PI*4;}
+        if(p>=.55&&p<.85){const q=(p-.55)/.3;ry+=-Math.sin(q*Math.PI)*1.7;rz+=Math.sin(q*Math.PI)*.35;}}
+      if(S.swT>0){const d=S.heavyT?.45:.28,p=1-S.swT/d,k=Math.sin(p*Math.PI);
+        if(S.heavyT){pz+=-.2*k;py+=.04*k;rx+=-.5*k;}else{rx+=.5*k;ry+=-1.0*k;px+=-.14*k;py+=.03*k;}}
+    } else {px=.22;py=-.2-(S.relT>0?.12:0)-S.recoil*.4;pz=-.25;
+      if(S.insT>0){const p=1-S.insT/S.insD,k=sm(p<.2?p/.2:p>.8?(1-p)/.2:1),w=Math.sin(Math.min(1,Math.max(0,(p-.2)/.6))*Math.PI);
+        px+=-.1*k;py+=.05*k;pz+=-.05*k;ry+=-.9*k+w*.5;rz+=.35*k;rx+=.15*w;}}
+    gunG.position.set(px,py,pz);gunG.rotation.set(rx,ry,rz);if(knifePivot)knifePivot.rotation.z=spin;
+  }
+  function swingSnd(vol,pan){if(!ac())return;const t=AC.currentTime,out=outNode(vol,pan);noise(out,t,.18,'bandpass',600,3200,.8,1.2);}
+  function stabSnd(){if(!ac())return;const t=AC.currentTime,out=outNode(.7,0);noise(out,t,.08,'lowpass',1400,300,1);tone(out,t,.1,'sine',180,70,.8);}
+  function wallSnd(){if(!ac())return;const t=AC.currentTime,out=outNode(.5,0);tone(out,t,.12,'triangle',2400,1800,.35);noise(out,t,.05,'highpass',3000,0,.5);}
+  function knifeDraw(){if(!ac())return;const t=AC.currentTime,out=outNode(.45,0);noise(out,t,.22,'bandpass',2500,6000,.6,3);tone(out,t+.15,.12,'sine',3200,3000,.15);}
+  function knifeSpin(){if(!ac())return;const t=AC.currentTime;for(let i=0;i<4;i++){const out=outNode(.25,0);noise(out,t+i*.16,.12,'bandpass',900,2600,.7,1.5);}tone(outNode(.2,0),t+1.3,.15,'sine',3100,2900,.25);}
   // ---- döngü ----
   function tick(dt){
     if(!ready||!active)return;
@@ -606,7 +661,7 @@ const FPS=(()=>{
     S.recoil=Math.max(0,S.recoil-dt*.25);
     // hareket
     if(alive&&!S.matchOver){
-      const sp=(K.ShiftLeft||K.ShiftRight)?3:(S.zoom?3:6);
+      const sp=(K.ShiftLeft||K.ShiftRight)?3:(S.zoom?3:(S.w===3?6.8:6));
       const f=Math.max(-1,Math.min(1,(K.KeyW?1:0)-(K.KeyS?1:0)-S.jy)),s=Math.max(-1,Math.min(1,(K.KeyD?1:0)-(K.KeyA?1:0)+S.jx));
       const sy=Math.sin(S.yaw),cy=Math.cos(S.yaw);
       let mx=(-sy*f+cy*s),mz=(-cy*f-sy*s);const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l;}if(l<.05){mx=mz=0;}
@@ -622,13 +677,13 @@ const FPS=(()=>{
     camera.rotation.set(S.pitch,S.yaw,alive?0:.6,'YXZ');
     const fov=S.zoom&&WEP[S.w].scope?22:75;if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}
     gunG.visible=!(S.zoom&&WEP[S.w].scope)&&alive;
-    gunG.position.y=-.2+(S.relT>0?-.12:0)-S.recoil*.4;
+    animGun(dt);
     // rakip
     if(P&&P.mt===S.mt){peerG.visible=true;P.rx+=(P.x-P.rx)*.35;P.rz+=(P.z-P.rz)*.35;P.ry+=(P.y-P.ry)*.35;
-      peerG.position.set(P.rx,P.ry,P.rz);peerG.rotation.y=P.yaw;
+      peerG.position.set(P.rx,P.ry,P.rz);peerG.rotation.y=P.yaw;peerGun.visible=P.w!==3;peerKnife.visible=P.w===3;
       {if(pLast){const v=Math.hypot(P.x-pLast.x,P.z-pLast.z)/dt;if(v>4.2&&Math.abs(P.y-pLast.y)<.05){pStepT-=dt;if(pStepT<=0){pStepT=.36;const sp=spatial();if(sp.dist<28)stepSnd(sp.vol*.35,sp.pan);}}}pLast={x:P.x,y:P.y,z:P.z};}
       const dead=peerHp<=0&&P.rd===S.rd;peerG.rotation.z=dead?Math.PI/2:0;if(dead)peerG.position.y=P.ry+.35;
-      if(P.sn!==lastPeerSn){if(P.sn>lastPeerSn){peerFlash.visible=true;setTimeout(()=>{peerFlash.visible=false;},60);const sp=spatial();gunSound(Math.max(0,Math.min(2,P.w|0)),sp.vol*.8,sp.pan);}lastPeerSn=P.sn;}
+      if(P.sn!==lastPeerSn){if(P.sn>lastPeerSn){peerFlash.visible=true;setTimeout(()=>{peerFlash.visible=false;},60);const sp=spatial();if(P.w===3){if(sp.dist<12)swingSnd(sp.vol*.6,sp.pan);}else gunSound(Math.max(0,Math.min(2,P.w|0)),sp.vol*.8,sp.pan);}lastPeerSn=P.sn;}
       if(P.rd>S.rd&&P.mt===S.mt&&!S.matchOver)newRound(P.rd,S.mt);
     } else if(P&&P.mt>S.mt){startMatch(P.mt);} else peerG.visible=false;
     hud(myHp,peerHp);
@@ -641,7 +696,7 @@ const FPS=(()=>{
   function hud(myHp,peerHp){
     if(!hudEl)return;const w=WEP[S.w],[a,b]=scores();
     hudEl.querySelector('.fhp b').textContent=myHp;hudEl.querySelector('.fhp i').style.width=myHp+'%';
-    hudEl.querySelector('.fammo b').textContent=S.relT>0?'Dolduruluyor…':S.ammo[S.w]+' / '+w.mag;
+    hudEl.querySelector('.fammo b').textContent=w.melee?'∞':S.relT>0?'Dolduruluyor…':S.ammo[S.w]+' / '+w.mag;
     hudEl.querySelector('.fammo span').textContent=w.name;
     hudEl.querySelector('.fsc').textContent='Sen '+a+'  –  '+b+' '+peerName;
     hudEl.querySelector('.fphp i').style.width=(P?peerHp:0)+'%';
@@ -680,7 +735,7 @@ const FPS=(()=>{
     document.getElementById('fhud').querySelector('.flock').addEventListener('click',()=>cv.click());
     document.addEventListener('pointerlockchange',()=>{S.locked=document.pointerLockElement===cv;if(!S.locked)S.firing=false;});
     document.addEventListener('mousemove',e=>{if(!S.locked||!active)return;const sens=(S.zoom&&WEP[S.w].scope?.0007:.0022);S.yaw-=e.movementX*sens;S.pitch=Math.max(-1.45,Math.min(1.45,S.pitch-e.movementY*sens));});
-    cv.addEventListener('mousedown',e=>{if(!S.locked)return;if(e.button===0){S.firing=true;S.fired=false;}if(e.button===2&&WEP[S.w].scope&&S.relT<=0)S.zoom=!S.zoom;});
+    cv.addEventListener('mousedown',e=>{if(!S.locked)return;if(e.button===0){S.firing=true;S.fired=false;}if(e.button===2&&WEP[S.w].melee&&hpMe()>0&&!S.ended)shoot(true);else if(e.button===2&&WEP[S.w].scope&&S.relT<=0)S.zoom=!S.zoom;});
     addEventListener('mouseup',e=>{if(e.button===0)S.firing=false;});
     cv.addEventListener('contextmenu',e=>e.preventDefault());
     document.getElementById('fhud').querySelector('.frem').addEventListener('click',()=>{startMatch(Math.max(S.mt,P?P.mt:0)+1);});
@@ -703,8 +758,9 @@ const FPS=(()=>{
     tb('fbF',()=>{S.firing=true;S.fired=false;},()=>{S.firing=false;});
     tb('fbJ',()=>{S.tj=true;});
     tb('fbR',()=>reload());
-    tb('fbW',()=>swap((S.w+1)%3));
-    tb('fbS',()=>{if(WEP[S.w].scope&&S.relT<=0)S.zoom=!S.zoom;else{swap(2);S.zoom=true;}});
+    tb('fbW',()=>swap((S.w+1)%4));
+    tb('fbY',()=>inspect());
+    tb('fbS',()=>{if(WEP[S.w].melee){shoot(true);return;}if(WEP[S.w].scope&&S.relT<=0)S.zoom=!S.zoom;else{swap(2);S.zoom=true;}});
   }
   return{start,stop,tick,render,setPeer,state,bindStage,get active(){return active;}};
 })();
@@ -894,7 +950,7 @@ const HELP=[
  ['▼ (S) yerdeyken seni sabitler.','Ortağın sabitken havada ▲ basılı tut: ipe tırmanırsın.','Birbirinizin omzuna çıkabilirsiniz.'],
  ['Z basılı: ortağına çekilirsin. X basılı: ondan itilirsin.','Ortağının omzundayken X seni yukarı fırlatır.','Menzil bölümler ilerledikçe kısalır.'],
  ['Ateş lavda, Su suda yürür; yeşil çamur ikinizi de yakar.','Ateş kırmızı, Su mavi elmasları toplar.','Düğmeler üstünde durdukça, kollar bir kez çekilince kapı açar.','İkiniz de kendi kapınıza ulaşın: kırmızı Ateş’in, mavi Su’nun.'],
- ['WASD hareket, fare ile nişan, tıkla ateş et.','1 tüfek, 2 tabanca, 3 keskin nişancı; sağ tık dürbün, R doldur.','Kafadan vuruş çok daha fazla hasar verir. İlk 5 raundu alan kazanır.','Rakibin silah ve ayak seslerini yönünden duyarsın; Shift ile sessiz yürü. M ses aç/kapa.','Esc imleci serbest bırakır; tekrar tıklayınca oyuna dönersin.']
+ ['WASD hareket, fare ile nişan, tıkla ateş et.','1 tüfek, 2 tabanca, 3 keskin nişancı, 4 karambit; sağ tık dürbün ya da güçlü bıçak darbesi, R doldur.','Y ile elindekini incele: karambit parmağında döner. Arkadan bıçak darbesi çok daha ölümcül.','Kafadan vuruş çok daha fazla hasar verir. İlk 5 raundu alan kazanır.','Rakibin silah ve ayak seslerini yönünden duyarsın; Shift ile sessiz yürü. M ses aç/kapa.','Esc imleci serbest bırakır; tekrar tıklayınca oyuna dönersin.']
 ];
 let lastHelpG=-1,helpTimer=0;
 function showHelp(g){
