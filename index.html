@@ -34,7 +34,7 @@ button.sel{box-shadow:0 0 0 3px #ffd36b}
 button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
 button:disabled{opacity:.3;cursor:not-allowed}
 .games{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:8px}
-.gcard{display:grid;gap:2px;text-align:left;background:linear-gradient(135deg,var(--c1),var(--c2));padding:12px;min-height:74px}
+.gcard{display:grid;gap:2px;align-content:end;text-align:left;background-size:cover;background-position:center;padding:12px;min-height:110px;text-shadow:0 1px 3px #26215C;border:1px solid #7F77DD}
 .gcard b{font-size:16px;line-height:1.2}.gcard span{font-size:13px;opacity:.9;font-weight:400}
 .lvls{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
 .lv{padding:0;min-height:40px;font-size:15px}
@@ -396,8 +396,24 @@ async function peerRoom(code){
 // ---------- menü ----------
 let menuG=0;
 function showMenu(){$('menu').hidden=false;$('helpCard').hidden=true;renderMenu();renderPickers();}
+const gameCache={};
+function gamePreview(g){
+  const key=g+'_'+myTheme;if(gameCache[key])return gameCache[key];
+  const sv={cur,lv,st};
+  cur={g,l:0,n:0};lv=genLevel(g,0);st={sw:{},op:new Set(),lit:()=>true};
+  const th=THEMES[myTheme]||THEMES[0],camX=4*T,W=960,Hh=600;
+  cx.save();
+  const bg=cx.createLinearGradient(0,0,0,Hh);bg.addColorStop(0,th.bg[0]);bg.addColorStop(1,th.bg[1]);cx.fillStyle=bg;cx.fillRect(0,0,W,Hh);
+  drawDecor(th,camX,0.3,cx);
+  cx.translate(-camX,0);
+  for(let y=0;y<H;y++)for(let x=4;x<=Math.min(lv.W-1,37);x++)drawTile(lv.grid[y][x],x,y,th,0.3);
+  cx.restore();
+  const c=document.createElement('canvas');c.width=320;c.height=200;c.getContext('2d').drawImage(cv,0,0,960,600,0,0,320,200);
+  cur=sv.cur;lv=sv.lv;st=sv.st;
+  return gameCache[key]=c.toDataURL();
+}
 function renderMenu(){
-  $('games').innerHTML=GAMES.map((g,i)=>`<button class="gcard${i===menuG?' sel':''}" data-g="${i}" style="--c1:${GC[i][0]};--c2:${GC[i][1]}"><b>${g.name}</b><span>${g.roles[myRole]} olacaksın</span></button>`).join('');
+  $('games').innerHTML=GAMES.map((g,i)=>`<button class="gcard${i===menuG?' sel':''}" data-g="${i}" style="background-image:linear-gradient(180deg,${GC[i][0]}00 15%,${GC[i][0]}f0 100%),url(${gamePreview(i)})"><b>${g.name}</b><span>${g.roles[myRole]} olacaksın</span></button>`).join('');
   $('gdesc').textContent=GAMES[menuG].desc;
   const u=unlocked[menuG]||1;
   $('lvls').innerHTML=Array.from({length:LEVELS},(_,i)=>`<button class="lv" data-l="${i}" ${i<u?'':'disabled'}>${i+1}</button>`).join('');
@@ -425,7 +441,7 @@ function start(g,l,n){
   me=mkPlayer(lv,myRole);me.role=myRole;peer=null;done=0;
   $('menu').hidden=true;$('msg').hidden=true;
   $('where').textContent=GAMES[g].name+' · Bölüm '+(l+1)+'/'+LEVELS;
-  if(g!==lastHelpG){lastHelpG=g;showHelp(g);}
+
 }
 const HELP=[
  ['Ok tuşları veya W A D ile yürü ve zıpla.','Düğmenin üstünde durdukça ortağının dünyasında köprü belirir veya kapı açılır.','İkiniz de sağdaki parlayan çıkışa ulaşın.'],
@@ -592,15 +608,13 @@ function themePreview(i){
   g.save();g.scale(0.5,0.5);drawDecor(th,0,0.3,g);g.restore();
   for(let x=0;x<16;x++)for(let y=0;y<2;y++){g.fillStyle=(x+y)%2?th.tile:th.tile2;g.fillRect(x*30,150+y*30,30,30);}
   g.fillStyle=th.edge;g.fillRect(0,150,480,3);
-  g.save();g.translate(200,150);g.scale(1.6,1.6);drawSkin(g,mySkin,1,0);g.restore();
-  g.save();g.translate(270,150);g.scale(1.6,1.6);drawSkin(g,mySkin===1?0:1,-1,0);g.restore();
   return prevCache[i]=c.toDataURL();
 }
 function renderPickers(){
   document.querySelectorAll('.skins').forEach(box=>{
     box.innerHTML=SKINS.map((s,i)=>`<button class="skin${i===mySkin?' sel':''}" data-k="${i}" aria-label="${s.name}"><canvas width="56" height="50"></canvas><span>${s.name}</span></button>`).join('');
     box.querySelectorAll('.skin').forEach(b=>{const k=+b.dataset.k,c=b.querySelector('canvas').getContext('2d');c.translate(28,44);drawSkin(c,k,1,0);
-      b.onclick=()=>{mySkin=k;save('cl_skin',k);for(const q in prevCache)delete prevCache[q];renderPickers();};});
+      b.onclick=()=>{mySkin=k;save('cl_skin',k);renderPickers();};});
   });
   document.querySelectorAll('.themes').forEach(box=>{
     box.innerHTML=THEMES.map((th,i)=>`<button class="theme${i===myTheme?' sel':''}" data-t="${i}" style="background-image:linear-gradient(rgba(38,33,92,.35),rgba(38,33,92,.35)),url(${themePreview(i)})"><span>${th.name}</span></button>`).join('');
