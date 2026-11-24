@@ -51,7 +51,8 @@ summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
 .bar b{color:var(--ink)}.bar button{min-height:38px;padding:6px 12px;font-size:14px}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#777;margin-right:6px;vertical-align:middle}.dot.on{background:#5be37a}
 .corner{position:absolute;top:16px;right:16px;display:flex;gap:6px}.corner button{min-height:38px;padding:6px 12px;font-size:14px;background:rgba(38,33,92,.75);border:1px solid #7F77DD;display:flex;align-items:center}
-.icon{display:flex;align-items:center;justify-content:center}
+.hcard{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:min(440px,86%);background:rgba(38,33,92,.92);border:1px solid #7F77DD;border-radius:14px;padding:14px 18px;cursor:pointer}
+.hcard[hidden]{display:none}.hcard b{font-size:17px}.hcard ul{margin:8px 0;padding-left:18px;font-size:15px;line-height:1.5}.hcard span{font-size:12px;color:var(--muted)}
 .help{margin-top:10px;font-size:14px;color:var(--muted)}
 .touch{display:none;gap:8px;margin-top:12px;flex-wrap:wrap}
 .touch button{flex:1 1 60px;font-size:20px;min-height:58px;user-select:none;-webkit-user-select:none;touch-action:none}
@@ -63,7 +64,8 @@ summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
   <h1>Oge Macerası</h1>
   <div class="box">
     <canvas id="cv" width="960" height="600"></canvas>
-    <div class="corner"><button id="homeBtn3" aria-label="Ana ekran" title="Ana ekran"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button><button id="menuBtn2" aria-label="Oyun menüsü">☰ Menü</button></div>
+    <div class="corner"><button id="homeBtn3" aria-label="Ana ekran" title="Ana ekran"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button><button id="helpBtn" aria-label="Kontroller" title="Kontroller">?</button><button id="menuBtn2" aria-label="Oyun menüsü">☰ Menü</button></div>
+    <div class="hcard" id="helpCard" hidden><b id="hcTitle"></b><ul id="hcList"></ul><span>Kapatmak için dokun</span></div>
     <div class="ov" id="lobby"><div class="card">
       <h2>Dört oyun, iki oyuncu, 120 bölüm</h2>
       <p>İkiniz de aynı oda kodunu girin; biriniz 1. oyuncu, öbürünüz 2. oyuncu olsun.</p>
@@ -80,22 +82,16 @@ summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
       <div class="games" id="games"></div>
       <p id="gdesc"></p>
       <div class="lvls" id="lvls"></div>
-      <details><summary>Karakter ve arka plan</summary><div class="skins" style="margin-top:8px"></div><div class="themes" style="margin-top:8px"></div></details>
-      <p>Geçtiğiniz bölümden sonrakinin kilidi açılır. Ortağın bir bölüm seçerse sen de oraya geçersin.</p>
-      <div class="row"><button class="ghost" id="closeMenu">Oyuna dön</button><button class="ghost icon" id="homeBtn2" aria-label="Ana ekran" title="Ana ekran" style="flex:0 0 56px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button></div>
+      <p>Biriniz bölüm seçince öbürünüzde de açılır.</p>
+      <button class="ghost" id="closeMenu">Oyuna dön</button>
     </div></div>
     <div class="ov" id="msg" hidden><div class="card" style="text-align:center"><h2 id="mt"></h2><p id="mp"></p></div></div>
   </div>
   <div class="bar">
     <span><span class="dot" id="cdot"></span><span id="conn">Bağlı değil</span></span>
-    <span><b id="gname">—</b> · Bölüm <b id="lv">—</b></span>
-    <span>Sen: <b id="rname">—</b></span>
-    <span id="roomtxt"></span>
-    <button class="ghost" id="menuBtn">Oyun menüsü</button>
-    <button class="ghost icon" id="homeBtn" aria-label="Ana ekran" title="Ana ekran"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button>
+    <b id="where"></b>
   </div>
   <div class="touch" id="touch"><button data-k="L">◀</button><button data-k="R">▶</button><button data-k="U">▲</button><button data-k="D">▼</button><button data-k="Z">Çek</button><button data-k="X">İt</button></div>
-  <p class="help" id="help">Odaya girdikten sonra oyun menüsünden bir oyun seç.</p>
 </div>
 <script>
 {
@@ -348,7 +344,7 @@ async function join(){
   }
   if(!room){$('lmsg').textContent='Odaya girilemedi, tekrar dene.';return;}
   const gen=++netGen;room.onPeers(l=>{if(gen===netGen)onPeers(l);});
-  $('lobby').hidden=true;$('roomtxt').textContent='Oda: '+myCode;setConn(false,'Ortağın bekleniyor…');
+  $('lobby').hidden=true;setConn(false,'Ortağın bekleniyor…');
   showMenu();
 }
 function onPeers(list){
@@ -399,7 +395,7 @@ async function peerRoom(code){
 
 // ---------- menü ----------
 let menuG=0;
-function showMenu(){$('menu').hidden=false;renderMenu();renderPickers();}
+function showMenu(){$('menu').hidden=false;$('helpCard').hidden=true;renderMenu();renderPickers();}
 function renderMenu(){
   $('games').innerHTML=GAMES.map((g,i)=>`<button class="gcard${i===menuG?' sel':''}" data-g="${i}" style="--c1:${GC[i][0]};--c2:${GC[i][1]}"><b>${g.name}</b><span>${g.roles[myRole]} olacaksın</span></button>`).join('');
   $('gdesc').textContent=GAMES[menuG].desc;
@@ -408,17 +404,18 @@ function renderMenu(){
   $('games').querySelectorAll('.gcard').forEach(b=>b.onclick=()=>{menuG=+b.dataset.g;renderMenu();});
   $('lvls').querySelectorAll('.lv').forEach(b=>b.onclick=()=>{const n=Math.max(cur?cur.n:0,peerRaw?(+peerRaw.pn||0):0)+1;start(menuG,+b.dataset.l,n);});
 }
-$('menuBtn').onclick=()=>{if(room)showMenu();};
 $('menuBtn2').onclick=()=>{if(room)showMenu();};
 function toLobby(){
   netGen++;try{if(room&&typeof room.leave==='function')room.leave();}catch(e){}
   for(const p of peerObjs){try{p.destroy();}catch(e){}}peerObjs=[];
   room=null;cur=null;peer=null;peerRaw=null;done=0;
   $('menu').hidden=true;$('msg').hidden=true;$('lobby').hidden=false;$('lmsg').textContent='';
-  $('roomtxt').textContent='';$('gname').textContent='—';$('lv').textContent='—';$('rname').textContent='—';
-  setConn(false,'Bağlı değil');$('help').textContent='Odaya girdikten sonra oyun menüsünden bir oyun seç.';renderPickers();
+  $('where').textContent='';$('helpCard').hidden=true;lastHelpG=-1;
+  setConn(false,'Bağlı değil');renderPickers();
 }
-$('homeBtn').onclick=toLobby;$('homeBtn2').onclick=toLobby;$('homeBtn3').onclick=()=>{if(room)toLobby();};
+$('homeBtn3').onclick=()=>{if(room)toLobby();};
+$('helpBtn').onclick=()=>{if(cur)showHelp(cur.g);};
+$('helpCard').onclick=()=>{$('helpCard').hidden=true;};
 addEventListener('keydown',e=>{if(e.code==='Escape'&&room){if($('menu').hidden)showMenu();else if(cur)$('menu').hidden=true;}});
 $('closeMenu').onclick=()=>{if(cur)$('menu').hidden=true;};
 
@@ -427,15 +424,21 @@ function start(g,l,n){
   st={sw:{},op:new Set(),lit:()=>false};
   me=mkPlayer(lv,myRole);me.role=myRole;peer=null;done=0;
   $('menu').hidden=true;$('msg').hidden=true;
-  $('gname').textContent=GAMES[g].name;$('lv').textContent=(l+1)+'/'+LEVELS;$('rname').textContent=GAMES[g].roles[myRole];
-  $('help').textContent=HELP[g];
+  $('where').textContent=GAMES[g].name+' · Bölüm '+(l+1)+'/'+LEVELS;
+  if(g!==lastHelpG){lastHelpG=g;showHelp(g);}
 }
 const HELP=[
- 'Ok tuşları ya da W A D ile hareket. Düğmenin üstünde durduğun sürece ortağının dünyasında köprü belirir ya da kapı açılır. R: yeniden doğ.',
- 'Ok tuşları ya da W A D. Fener sadece etrafını görür; Gölge her yeri görür ama hayalet platformlara yalnızca fenerin yakınında basabilir. Gölge mor duvarlardan geçer, arkadaki düğme duvarı açar. R: yeniden doğ.',
- 'Ok tuşları ya da W A D. ▼ (S) yerdeyken seni sabitler; ortağın sabitken havada ▲ basılı tutarsan ipe tırmanırsın. Birbirinizin omzuna çıkabilirsiniz. R: yeniden doğ.',
- 'Ok tuşları ya da W A D. Z (J) basılı: ortağına çekilirsin. X (K) basılı: ondan itilirsin. Ortağının omzundayken X yukarı fırlatır. Menzil bölüm ilerledikçe kısalır. R: yeniden doğ.'
+ ['Ok tuşları veya W A D ile yürü ve zıpla.','Düğmenin üstünde durdukça ortağının dünyasında köprü belirir veya kapı açılır.','İkiniz de sağdaki parlayan çıkışa ulaşın.'],
+ ['Fener sadece etrafını görür; Gölge her yeri görür.','Hayalet platformlar yalnızca fenerin ışığında katılaşır.','Gölge mor duvarlardan geçer, arkadaki düğme duvarı açar.'],
+ ['▼ (S) yerdeyken seni sabitler.','Ortağın sabitken havada ▲ basılı tut: ipe tırmanırsın.','Birbirinizin omzuna çıkabilirsiniz.'],
+ ['Z basılı: ortağına çekilirsin. X basılı: ondan itilirsin.','Ortağının omzundayken X seni yukarı fırlatır.','Menzil bölümler ilerledikçe kısalır.']
 ];
+let lastHelpG=-1,helpTimer=0;
+function showHelp(g){
+  $('hcTitle').textContent=GAMES[g].name+' · sen '+GAMES[g].roles[myRole];
+  $('hcList').innerHTML=HELP[g].map(t=>'<li>'+t+'</li>').join('')+'<li>Takılırsan R ile yeniden doğarsın.</li>';
+  $('helpCard').hidden=false;clearTimeout(helpTimer);helpTimer=setTimeout(()=>{$('helpCard').hidden=true;},7000);
+}
 
 // ---------- döngü ----------
 let acc=0,last=performance.now();
@@ -484,7 +487,7 @@ function draw(){
   if(cur.g===1)drawDark(camX,th);
   // menzil / durum göstergeleri
   cx.font='600 13px Rubik,sans-serif';cx.textAlign='left';cx.fillStyle='#ffffffb0';
-  if(!peer){cx.fillStyle=th.ink;cx.fillText('Ortağın bu bölümde değil',12,22);}
+  
 }
 function drawTile(c,x,y,th,t){
   if(c==='.')return;const X=x*T,Y=y*T;
