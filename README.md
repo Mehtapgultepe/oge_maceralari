@@ -1,4 +1,6 @@
-# İkili Oyunlar
+# Oge Macerası
+
+Hasoge & Metoge için.
 
 İki kişilik online tarayıcı oyunu: Ayna Dünya, Işık ve Gölge, İple Bağlı, Mıknatıs İkizler. Her oyunda 30 bölüm var.
 
