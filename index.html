@@ -50,6 +50,7 @@ summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
 .bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:12px;font-size:15px;color:var(--muted)}
 .bar b{color:var(--ink)}.bar button{min-height:38px;padding:6px 12px;font-size:14px}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#777;margin-right:6px;vertical-align:middle}.dot.on{background:#5be37a}
+.corner{position:absolute;top:16px;right:16px;min-height:36px;padding:6px 12px;font-size:14px;background:rgba(38,33,92,.75);border:1px solid #7F77DD}
 .help{margin-top:10px;font-size:14px;color:var(--muted)}
 .touch{display:none;gap:8px;margin-top:12px;flex-wrap:wrap}
 .touch button{flex:1 1 60px;font-size:20px;min-height:58px;user-select:none;-webkit-user-select:none;touch-action:none}
@@ -61,6 +62,7 @@ summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
   <h1>Oge Macerası</h1>
   <div class="box">
     <canvas id="cv" width="960" height="600"></canvas>
+    <button class="corner" id="menuBtn2" aria-label="Oyun menüsü">☰ Menü</button>
     <div class="ov" id="lobby"><div class="card">
       <h2>Dört oyun, iki oyuncu, 120 bölüm</h2>
       <p>İkiniz de aynı oda kodunu girin; biriniz 1. oyuncu, öbürünüz 2. oyuncu olsun.</p>
@@ -79,7 +81,7 @@ summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
       <div class="lvls" id="lvls"></div>
       <details><summary>Karakter ve arka plan</summary><div class="skins" style="margin-top:8px"></div><div class="themes" style="margin-top:8px"></div></details>
       <p>Geçtiğiniz bölümden sonrakinin kilidi açılır. Ortağın bir bölüm seçerse sen de oraya geçersin.</p>
-      <button class="ghost" id="closeMenu">Kapat</button>
+      <div class="row"><button class="ghost" id="closeMenu">Oyuna dön</button><button class="ghost" id="homeBtn2">Ana ekrana dön</button></div>
     </div></div>
     <div class="ov" id="msg" hidden><div class="card" style="text-align:center"><h2 id="mt"></h2><p id="mp"></p></div></div>
   </div>
@@ -89,6 +91,7 @@ summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
     <span>Sen: <b id="rname">—</b></span>
     <span id="roomtxt"></span>
     <button class="ghost" id="menuBtn">Oyun menüsü</button>
+    <button class="ghost" id="homeBtn">Ana ekran</button>
   </div>
   <div class="touch" id="touch"><button data-k="L">◀</button><button data-k="R">▶</button><button data-k="U">▲</button><button data-k="D">▼</button><button data-k="Z">Çek</button><button data-k="X">İt</button></div>
   <p class="help" id="help">Odaya girdikten sonra oyun menüsünden bir oyun seç.</p>
@@ -304,7 +307,7 @@ const SKINS=[
 ];
 let mySkin=loadK0('cl_skin',0),myTheme=loadK0('cl_theme',0),peerSkin=1;
 function loadK0(k,d){try{const v=JSON.parse(localStorage.getItem(k));return Number.isInteger(v)?v:d;}catch(e){return d;}}
-let myName='',myRole=0,myCode='',room=null;
+let myName='',myRole=0,myCode='',room=null,netGen=0,peerObjs=[];
 let cur=null; // {g,l,n}
 let lv=null,st=null,me=null,peer=null,peerRaw=null,peerName='',done=0,lastSend=0,tick=0;
 let pickN=0;
@@ -343,7 +346,7 @@ async function join(){
   if(!room&&typeof root.presence==='function')room=root;
   }
   if(!room){$('lmsg').textContent='Odaya girilemedi, tekrar dene.';return;}
-  room.onPeers(onPeers);
+  const gen=++netGen;room.onPeers(l=>{if(gen===netGen)onPeers(l);});
   $('lobby').hidden=true;$('roomtxt').textContent='Oda: '+myCode;setConn(false,'Ortağın bekleniyor…');
   showMenu();
 }
@@ -378,12 +381,12 @@ async function peerRoom(code){
   const attach=c=>{conn=c;c.on('data',d=>{if(cb&&d&&typeof d==='object')cb([{presence:d}]);});c.on('close',()=>{if(conn===c){conn=null;if(cb)cb([]);}});};
   const api={presence(s){if(conn&&conn.open){try{conn.send(s);}catch(e){}}},onPeers(f){cb=f;}};
   return new Promise((res,rej)=>{
-    const host=new Peer(hostId);let settled=false;
+    const host=new Peer(hostId);peerObjs.push(host);let settled=false;
     host.on('open',()=>{settled=true;host.on('connection',c=>{if(conn)try{conn.close();}catch(e){}attach(c);});res(api);});
     host.on('error',err=>{
       if(err&&err.type==='unavailable-id'){ // oda zaten açık: misafir olarak bağlan
         try{host.destroy();}catch(e){}
-        const guest=new Peer();
+        const guest=new Peer();peerObjs.push(guest);
         const connect=()=>{const c=guest.connect(hostId);c.on('open',()=>attach(c));c.on('close',()=>setTimeout(()=>{if(!conn)connect();},1500));};
         guest.on('open',()=>{connect();res(api);});
         guest.on('error',e=>{if(!settled){settled=true;rej(e);}});
@@ -405,6 +408,17 @@ function renderMenu(){
   $('lvls').querySelectorAll('.lv').forEach(b=>b.onclick=()=>{const n=Math.max(cur?cur.n:0,peerRaw?(+peerRaw.pn||0):0)+1;start(menuG,+b.dataset.l,n);});
 }
 $('menuBtn').onclick=()=>{if(room)showMenu();};
+$('menuBtn2').onclick=()=>{if(room)showMenu();};
+function toLobby(){
+  netGen++;try{if(room&&typeof room.leave==='function')room.leave();}catch(e){}
+  for(const p of peerObjs){try{p.destroy();}catch(e){}}peerObjs=[];
+  room=null;cur=null;peer=null;peerRaw=null;done=0;
+  $('menu').hidden=true;$('msg').hidden=true;$('lobby').hidden=false;$('lmsg').textContent='';
+  $('roomtxt').textContent='';$('gname').textContent='—';$('lv').textContent='—';$('rname').textContent='—';
+  setConn(false,'Bağlı değil');$('help').textContent='Odaya girdikten sonra oyun menüsünden bir oyun seç.';renderPickers();
+}
+$('homeBtn').onclick=toLobby;$('homeBtn2').onclick=toLobby;
+addEventListener('keydown',e=>{if(e.code==='Escape'&&room){if($('menu').hidden)showMenu();else if(cur)$('menu').hidden=true;}});
 $('closeMenu').onclick=()=>{if(cur)$('menu').hidden=true;};
 
 function start(g,l,n){
