@@ -19,7 +19,7 @@ body{margin:0;background:linear-gradient(180deg,#bfe7ff 0%,#e6f6ff 45%,#e9f8e1 1
 h1{font-size:clamp(24px,3.4vw,32px);line-height:1.05;margin:0 0 14px;font-weight:800;letter-spacing:-.01em}
 .box{position:relative;border-radius:18px;padding:6px;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.8);box-shadow:0 18px 44px rgba(40,70,110,.18)}
 canvas{display:block;width:100%;height:auto;border-radius:13px;background:#cdeeff}
-.ov{position:absolute;inset:6px;display:grid;place-items:center;background:rgba(200,235,255,.12);border-radius:13px;padding:16px;overflow:auto}
+.ov{position:absolute;inset:0;display:grid;place-items:center;background:rgba(200,235,255,.12);border-radius:13px;padding:16px;overflow:auto}
 .ov[hidden]{display:none}
 .card{width:min(580px,100%);display:grid;gap:12px;background:linear-gradient(160deg,rgba(255,255,255,.62),rgba(236,248,255,.42));backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid rgba(255,255,255,.55);border-radius:24px;padding:22px;box-shadow:0 10px 36px rgba(40,90,130,.16)}
 .card h2{margin:0;font-size:21px;line-height:1.2;font-weight:600}
@@ -65,16 +65,22 @@ button:disabled{opacity:.35;cursor:not-allowed}
 .bar b{color:var(--ink);font-weight:500}
 .pill{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:#fff;border:1px solid var(--line)}
 .dot{width:8px;height:8px;border-radius:50%;background:#b4b9c6}.dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(93,202,165,.2)}
-.corner{position:absolute;top:16px;right:16px;display:flex;gap:6px}.corner[hidden]{display:none}
+.corner{position:absolute;top:10px;right:10px;display:flex;gap:6px}.corner[hidden]{display:none}
 .corner button{min-height:36px;min-width:36px;padding:0 10px;font-size:14px;background:rgba(255,255,255,.85);border-color:rgba(255,255,255,.9);color:var(--ink);display:flex;align-items:center;gap:6px;backdrop-filter:blur(4px)}
 .hcard{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:min(440px,86%);background:var(--panel);border:1px solid rgba(255,255,255,.9);border-radius:20px;padding:16px 20px;cursor:pointer;box-shadow:0 16px 40px rgba(40,70,110,.22)}
 .hcard[hidden]{display:none}.hcard b{font-size:16px;font-weight:600}.hcard ul{margin:10px 0;padding-left:18px;font-size:14px;line-height:1.6;color:var(--ink)}.hcard span{font-size:12px;color:var(--muted)}
-.splash{position:absolute;inset:6px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:7% 16px 3%;border-radius:11px;pointer-events:none}
+.splash{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:7% 16px 3%;border-radius:11px;pointer-events:none}
 .splash[hidden]{display:none}
 .stitle{font-family:'Lilita One',Rubik,sans-serif;font-size:clamp(40px,9vw,92px);line-height:1;color:#fff;letter-spacing:.01em;-webkit-text-stroke:clamp(2px,.5vw,5px) #3C3489;paint-order:stroke fill;text-shadow:0 6px 0 #26215C,0 10px 24px rgba(20,16,60,.35);transform:rotate(-3deg);animation:bob 3s ease-in-out infinite}
 @keyframes bob{50%{transform:rotate(-3deg) translateY(-6px)}}
 button.big{pointer-events:auto;font-size:clamp(17px,2.2vw,22px);padding:14px 40px;min-height:56px;border-radius:999px;box-shadow:0 6px 0 #3C3489,0 12px 28px rgba(20,16,60,.35);font-weight:600}
 button.big:active{transform:translateY(3px);box-shadow:0 3px 0 #3C3489}
+.stage{position:relative;width:100%;aspect-ratio:8/5;border-radius:13px;overflow:hidden}
+.stage>canvas{width:100%;height:100%}
+.fsbtn{position:absolute;right:10px;bottom:10px;z-index:5;min-height:36px;min-width:36px;padding:0;display:grid;place-items:center;border-radius:10px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9)}
+.box.full{position:fixed;inset:0;z-index:50;border-radius:0;padding:0;border:0;display:grid;place-items:center;background:linear-gradient(180deg,#bfe7ff,#e9f8e1)}
+.box:fullscreen{border-radius:0;padding:0;border:0;display:grid;place-items:center;background:linear-gradient(180deg,#bfe7ff,#e9f8e1)}
+.box.full .stage,.box:fullscreen .stage{width:min(100vw,160vh);border-radius:0}
 .touch{display:none;gap:8px;margin-top:12px;flex-wrap:wrap}
 .touch button{flex:1 1 60px;font-size:20px;min-height:58px;user-select:none;-webkit-user-select:none;touch-action:none}
 @media (pointer:coarse){.touch{display:flex}}
@@ -83,8 +89,9 @@ button.big:active{transform:translateY(3px);box-shadow:0 3px 0 #3C3489}
 </head>
 <body>
 <div class="wrap">
-  <div class="box">
+  <div class="box" id="box"><div class="stage">
     <canvas id="cv" width="960" height="600"></canvas>
+    <button class="fsbtn" id="fsBtn" aria-label="Tam ekran" title="Tam ekran"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <div class="corner"><button id="homeBtn3" aria-label="Ana ekran" title="Ana ekran"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button><button id="helpBtn" aria-label="Kontroller" title="Kontroller">?</button><button id="menuBtn2" aria-label="Oyun menüsü"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menü</button></div>
     <div class="hcard" id="helpCard" hidden><b id="hcTitle"></b><ul id="hcList"></ul><span>Kapatmak için dokun</span></div>
     <div class="splash" id="splash"><div class="stitle">Oge Macerası</div><button class="primary big" id="startBtn">Oyuna başla</button></div>
@@ -106,7 +113,7 @@ button.big:active{transform:translateY(3px);box-shadow:0 3px 0 #3C3489}
       <p style="text-align:center;font-size:13px">Oyunu başlatan kim olursa olsun, ikinizde de aynı bölüm açılır.</p>
     </div></div>
     <div class="ov" id="msg" hidden><div class="card" style="text-align:center"><h2 id="mt"></h2><p id="mp"></p></div></div>
-  </div>
+  </div></div>
   <div class="bar">
     <span class="pill"><span class="dot" id="cdot"></span><span id="conn">Bağlı değil</span></span>
     <b id="where"></b>
@@ -609,6 +616,16 @@ function drawSplash(t){
   // kalp
   const hb=1+Math.sin(t*4)*.08;c.save();c.translate(480,262);c.scale(hb,hb);c.fillStyle='#ED93B1';c.beginPath();c.moveTo(0,10);c.bezierCurveTo(-26,-10,-12,-30,0,-16);c.bezierCurveTo(12,-30,26,-10,0,10);c.fill();c.restore();
 }
+function setFsIcon(on){$('fsBtn').innerHTML=on?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';$('fsBtn').setAttribute('aria-label',on?'Tam ekrandan çık':'Tam ekran');$('fsBtn').title=on?'Tam ekrandan çık':'Tam ekran';}
+$('fsBtn').onclick=async()=>{
+  const box=$('box');
+  if(document.fullscreenElement){try{await document.exitFullscreen();}catch(e){}return;}
+  if(box.classList.contains('full')){box.classList.remove('full');setFsIcon(false);return;}
+  try{if(box.requestFullscreen){await box.requestFullscreen();return;}}catch(e){}
+  box.classList.add('full');setFsIcon(true);
+};
+document.addEventListener('fullscreenchange',()=>setFsIcon(!!document.fullscreenElement||$('box').classList.contains('full')));
+addEventListener('keydown',e=>{if(e.code==='Escape'&&$('box').classList.contains('full')&&!document.fullscreenElement){$('box').classList.remove('full');setFsIcon(false);}});
 let acc=0,last=performance.now();
 function frame(now){acc+=Math.min(100,now-last);last=now;while(acc>=1000/60){acc-=1000/60;tick++;update(now);}draw();send(now);requestAnimationFrame(frame);}
 function peerCtx(){
