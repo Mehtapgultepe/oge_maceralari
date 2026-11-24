@@ -2,7 +2,8 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Oge Macerası</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Rubik:wght@400;500;600;800&display=swap" rel="stylesheet">
@@ -105,6 +106,33 @@ button.big:active{transform:translateY(3px);box-shadow:0 3px 0 #3C3489}
 .flock small{font-size:12px;font-weight:400;color:var(--muted)}
 .flock[hidden],.frem[hidden]{display:none}
 .frem{pointer-events:auto;position:absolute;left:50%;top:44%;transform:translateX(-50%);min-width:180px}
+
+body{touch-action:manipulation;-webkit-text-size-adjust:100%}
+.stage{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.wrap{max-width:min(1000px,calc((100vh - 70px)*1.6 + 24px),calc((100dvh - 70px)*1.6 + 24px))}
+.tpad{position:absolute;left:0;right:0;bottom:0;display:none;justify-content:space-between;align-items:flex-end;padding:14px 64px 14px 14px;pointer-events:none;z-index:4}
+.tpad .tl,.tpad .tr{display:flex;gap:12px;align-items:flex-end}
+.tpad button{pointer-events:auto;width:clamp(56px,8vw,76px);height:clamp(56px,8vw,76px);min-height:0;border-radius:50%;padding:0;font-size:22px;font-weight:600;background:rgba(255,255,255,.32);border:2px solid rgba(255,255,255,.75);color:#26215C;touch-action:none;box-shadow:none;-webkit-user-select:none;user-select:none}
+.tpad button.tbig{width:clamp(70px,10vw,92px);height:clamp(70px,10vw,92px);font-size:28px}
+.tpad button.on{background:rgba(127,119,221,.6);color:#fff}
+.tpad .t-rope,.tpad .t-mag{display:none}
+.stage[data-g="2"] .t-rope,.stage[data-g="3"] .t-mag{display:block}
+.rot{display:none;position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(38,33,92,.7);color:#fff;padding:6px 14px;border-radius:999px;font-size:13px;z-index:6;pointer-events:none}
+.ftouch{display:none}
+@media (any-pointer:coarse){
+  .stage[data-mode="2d"] .tpad{display:flex}
+  .ftouch{display:block}
+  .flock{display:none!important}
+}
+@media (any-pointer:coarse) and (orientation:portrait){.stage[data-mode] .rot{display:block}}
+.fjoy{position:absolute;left:0;bottom:0;width:42%;height:62%;pointer-events:auto;touch-action:none}
+.fjoy i{position:absolute;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.45);border:2px solid rgba(255,255,255,.85);left:70px;bottom:70px;transform:translate(-50%,50%);display:block}
+.fjoy::before{content:"";position:absolute;left:70px;bottom:70px;width:130px;height:130px;border-radius:50%;border:2px dashed rgba(255,255,255,.6);transform:translate(-50%,50%)}
+.flook{position:absolute;right:0;top:0;width:58%;height:100%;pointer-events:auto;touch-action:none}
+.fbtns{position:absolute;right:62px;bottom:64px;display:grid;grid-template-columns:repeat(3,auto);gap:10px;align-items:end;pointer-events:none}
+.fbtns button{pointer-events:auto;width:56px;height:56px;min-height:0;padding:0;border-radius:50%;background:rgba(255,255,255,.4);border:2px solid rgba(255,255,255,.85);color:#fff;font-size:20px;text-shadow:0 1px 3px rgba(0,0,0,.5);touch-action:none}
+.fbtns .fire{grid-column:3;grid-row:1/3;width:84px;height:84px;background:rgba(226,75,74,.55);font-size:16px}
+@media (any-pointer:coarse){.fammo{bottom:auto;top:56px;right:16px}.fhp{bottom:auto;top:56px}}
 .touch{display:none;gap:8px;margin-top:12px;flex-wrap:wrap}
 .touch button{flex:1 1 60px;font-size:20px;min-height:58px;user-select:none;-webkit-user-select:none;touch-action:none}
 @media (pointer:coarse){.touch{display:flex}}
@@ -113,7 +141,7 @@ button.big:active{transform:translateY(3px);box-shadow:0 3px 0 #3C3489}
 </head>
 <body>
 <div class="wrap">
-  <div class="box" id="box"><div class="stage">
+  <div class="box" id="box"><div class="stage" id="stage">
     <canvas id="cv" width="960" height="600"></canvas>
     <canvas id="cv3" hidden></canvas>
     <div class="fhud" id="fhud" hidden>
@@ -124,7 +152,11 @@ button.big:active{transform:translateY(3px);box-shadow:0 3px 0 #3C3489}
       <div class="fban" hidden></div>
       <button class="flock" hidden>Oynamak için tıkla<small>WASD hareket · Fare nişan · Tık ateş · Sağ tık dürbün · R doldur · 1 2 3 silah · Space zıpla · Shift yavaş yürü · Esc imleç</small></button>
       <button class="frem primary" hidden>Rövanş</button>
+      <div class="ftouch"><div class="fjoy" id="fjoy"><i id="fknob"></i></div><div class="flook" id="flook"></div>
+        <div class="fbtns"><button id="fbW" aria-label="Silah değiştir">⇄</button><button id="fbR" aria-label="Doldur">R</button><button id="fbS" aria-label="Dürbün">◎</button><button id="fbJ" aria-label="Zıpla">▲</button><button id="fbF" class="fire" aria-label="Ateş">Ateş</button></div></div>
     </div>
+    <div class="tpad" id="tpad"><div class="tl"><button data-k="L" aria-label="Sol">◀</button><button data-k="R" aria-label="Sağ">▶</button></div><div class="tr"><button data-k="D" class="t-rope" aria-label="Sabitlen">▼</button><button data-k="Z" class="t-mag" aria-label="Çek">Çek</button><button data-k="X" class="t-mag" aria-label="İt">İt</button><button data-k="U" class="tbig" aria-label="Zıpla">▲</button></div></div>
+    <div class="rot" id="rot">Daha rahat oynamak için tableti yan çevir</div>
     <button class="fsbtn" id="fsBtn" aria-label="Tam ekran" title="Tam ekran"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <div class="corner"><button id="homeBtn3" aria-label="Ana ekran" title="Ana ekran"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button><button id="helpBtn" aria-label="Kontroller" title="Kontroller">?</button><button id="menuBtn2" aria-label="Oyun menüsü"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menü</button></div>
     <div class="hcard" id="helpCard" hidden><b id="hcTitle"></b><ul id="hcList"></ul><span>Kapatmak için dokun</span></div>
@@ -152,7 +184,6 @@ button.big:active{transform:translateY(3px);box-shadow:0 3px 0 #3C3489}
     <span class="pill"><span class="dot" id="cdot"></span><span id="conn">Bağlı değil</span></span>
     <b id="where"></b>
   </div>
-  <div class="touch" id="touch"><button data-k="L">◀</button><button data-k="R">▶</button><button data-k="U">▲</button><button data-k="D">▼</button><button data-k="Z">Çek</button><button data-k="X">İt</button></div>
 </div>
 <script>
 {
@@ -413,7 +444,7 @@ const FPS=(()=>{
     {name:'Keskin nişancı',auto:false,rate:1.2,dmg:85,head:2.4,mag:5,rel:2.8,spread:.09,move:.15,kick:.06,col:0x2f5d3a,scope:true}
   ];
   const S={x:0,y:0,z:0,vy:0,ground:true,yaw:0,pitch:0,w:0,ammo:[30,12,5],cool:0,relT:0,recoil:0,zoom:false,
-    rd:1,mt:1,dmg:0,sn:0,wins:{},ended:false,endT:0,banner:'',bannerT:0,hitT:0,hurtT:0,lastHp:100,firing:false,locked:false,matchOver:false};
+    rd:1,mt:1,dmg:0,jx:0,jy:0,tj:false,touch:false,sn:0,wins:{},ended:false,endT:0,banner:'',bannerT:0,hitT:0,hurtT:0,lastHp:100,firing:false,locked:false,matchOver:false};
   let P=null,role=0,peerName='Rakip',peerSkin=1,mySkin=0,lastPeerSn=0,audio=null;
   const K={};
   const SP=[{x:-16,z:-16,yaw:-Math.PI*0.75},{x:16,z:16,yaw:Math.PI*0.25}];
@@ -505,7 +536,7 @@ const FPS=(()=>{
     const w=WEP[S.w];if(S.relT>0||S.cool>0)return;
     if(S.ammo[S.w]<=0){reload();return;}
     S.ammo[S.w]--;S.cool=w.rate;S.sn++;
-    const moving=(K.KeyW||K.KeyA||K.KeyS||K.KeyD)||!S.ground;
+    const moving=(K.KeyW||K.KeyA||K.KeyS||K.KeyD)||Math.hypot(S.jx,S.jy)>.3||!S.ground;
     let sp=w.spread+(moving?w.move:0)+S.recoil*.6;if(w.scope&&S.zoom)sp=moving?.03:0;
     const dir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
     dir.x+=(Math.random()-.5)*sp*2;dir.y+=(Math.random()-.5)*sp*2;dir.z+=(Math.random()-.5)*sp*2;dir.normalize();
@@ -540,14 +571,14 @@ const FPS=(()=>{
     // hareket
     if(alive&&!S.matchOver){
       const sp=(K.ShiftLeft||K.ShiftRight)?3:(S.zoom?3:6);
-      const f=(K.KeyW?1:0)-(K.KeyS?1:0),s=(K.KeyD?1:0)-(K.KeyA?1:0);
+      const f=Math.max(-1,Math.min(1,(K.KeyW?1:0)-(K.KeyS?1:0)-S.jy)),s=Math.max(-1,Math.min(1,(K.KeyD?1:0)-(K.KeyA?1:0)+S.jx));
       const sy=Math.sin(S.yaw),cy=Math.cos(S.yaw);
-      let mx=(-sy*f+cy*s),mz=(-cy*f-sy*s);const l=Math.hypot(mx,mz)||1;mx/=l;mz/=l;if(!f&&!s){mx=mz=0;}
+      let mx=(-sy*f+cy*s),mz=(-cy*f-sy*s);const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l;}if(l<.05){mx=mz=0;}
       S.x+=mx*sp*dt;collide('x');S.z+=mz*sp*dt;collide('z');
-      if(K.Space&&S.ground){S.vy=7;S.ground=false;}
+      if((K.Space||S.tj)&&S.ground){S.vy=7;S.ground=false;}S.tj=false;
     }
     S.vy-=20*dt;S.y+=S.vy*dt;const fl=floorAt();if(S.y<=fl){S.y=fl;S.vy=0;S.ground=true;}else S.ground=false;
-    if(S.firing&&alive&&!S.ended&&S.locked){if(WEP[S.w].auto)shoot();else if(!S.fired){shoot();S.fired=true;}}
+    if(S.firing&&alive&&!S.ended&&(S.locked||S.touch)){if(WEP[S.w].auto)shoot();else if(!S.fired){shoot();S.fired=true;}}
     // kamera
     camera.position.set(S.x,S.y+(alive?1.6:.4),S.z);
     camera.rotation.set(S.pitch,S.yaw,alive?0:.6,'YXZ');
@@ -582,7 +613,7 @@ const FPS=(()=>{
     hudEl.querySelector('.fhurt').style.opacity=S.hurtT>0?S.hurtT*1.6:(myHp<=0?.45:0);
     hudEl.querySelector('.fscope').hidden=!(S.zoom&&w.scope);
     hudEl.querySelector('.fx').hidden=(S.zoom&&w.scope);
-    hudEl.querySelector('.flock').hidden=S.locked||S.matchOver;
+    hudEl.querySelector('.flock').hidden=S.locked||S.matchOver||S.touch;
   }
   function showRematch(on){if(hudEl)hudEl.querySelector('.frem').hidden=!on;}
   function startMatch(mt){S.mt=mt;S.wins={};S.matchOver=false;showRematch(false);newRound(1,mt);}
@@ -614,6 +645,26 @@ const FPS=(()=>{
     addEventListener('mouseup',e=>{if(e.button===0)S.firing=false;});
     cv.addEventListener('contextmenu',e=>e.preventDefault());
     document.getElementById('fhud').querySelector('.frem').addEventListener('click',()=>{startMatch(Math.max(S.mt,P?P.mt:0)+1);});
+    // ---- dokunmatik (iPad) ----
+    const coarse=matchMedia('(any-pointer:coarse)').matches;S.touch=coarse;
+    const joy=document.getElementById('fjoy'),knob=document.getElementById('fknob'),look=document.getElementById('flook');
+    let jid=null,jo=null,lid=null,lp=null;
+    joy.addEventListener('pointerdown',e=>{e.preventDefault();jid=e.pointerId;jo={x:e.clientX,y:e.clientY};try{joy.setPointerCapture(e.pointerId);}catch(_){}S.touch=true;});
+    joy.addEventListener('pointermove',e=>{if(e.pointerId!==jid)return;const dx=e.clientX-jo.x,dy=e.clientY-jo.y,m=55,l=Math.hypot(dx,dy),k=l>m?m/l:1;
+      S.jx=dx*k/m;S.jy=dy*k/m;knob.style.transform=`translate(calc(-50% + ${dx*k}px),calc(50% + ${dy*k}px))`;});
+    const jend=e=>{if(e.pointerId!==jid)return;jid=null;S.jx=S.jy=0;knob.style.transform='';};
+    ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joy.addEventListener(ev,jend));
+    look.addEventListener('pointerdown',e=>{e.preventDefault();lid=e.pointerId;lp={x:e.clientX,y:e.clientY};try{look.setPointerCapture(e.pointerId);}catch(_){}S.touch=true;});
+    look.addEventListener('pointermove',e=>{if(e.pointerId!==lid)return;const sens=(S.zoom&&WEP[S.w].scope?.0018:.006);
+      S.yaw-=(e.clientX-lp.x)*sens;S.pitch=Math.max(-1.45,Math.min(1.45,S.pitch-(e.clientY-lp.y)*sens));lp={x:e.clientX,y:e.clientY};});
+    ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>look.addEventListener(ev,e=>{if(e.pointerId===lid)lid=null;}));
+    const tb=(id,down,up)=>{const b=document.getElementById(id);b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();S.touch=true;try{b.setPointerCapture(e.pointerId);}catch(_){}down();});
+      if(up)['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,up));b.addEventListener('contextmenu',e=>e.preventDefault());};
+    tb('fbF',()=>{S.firing=true;S.fired=false;},()=>{S.firing=false;});
+    tb('fbJ',()=>{S.tj=true;});
+    tb('fbR',()=>reload());
+    tb('fbW',()=>swap((S.w+1)%3));
+    tb('fbS',()=>{if(WEP[S.w].scope&&S.relT<=0)S.zoom=!S.zoom;else{swap(2);S.zoom=true;}});
   }
   return{start,stop,tick,render,setPeer,state,bindStage,get active(){return active;}};
 })();
@@ -657,9 +708,11 @@ const KM={ArrowLeft:'L',KeyA:'L',ArrowRight:'R',KeyD:'R',ArrowUp:'U',KeyW:'U',Sp
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;const k=KM[e.code];if(k){keys[k]=1;e.preventDefault();}if(e.code==='KeyR'&&me&&!me.dead)me.dead=1;});
 addEventListener('keyup',e=>{const k=KM[e.code];if(k)keys[k]=0;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=0;});
-document.querySelectorAll('#touch button').forEach(b=>{const k=b.dataset.k;
-  b.addEventListener('pointerdown',e=>{keys[k]=1;e.preventDefault();});
-  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=0));});
+document.querySelectorAll('#tpad button').forEach(b=>{const k=b.dataset.k;
+  b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=1;b.classList.add('on');try{b.setPointerCapture(e.pointerId);}catch(_){}});
+  const up=()=>{keys[k]=0;b.classList.remove('on');};['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,up));
+  b.addEventListener('contextmenu',e=>e.preventDefault());});
+function setMode(){const s=$('stage');if(cur&&!splashOn){s.dataset.mode=GAMES[cur.g].fps?'fps':'2d';s.dataset.g=cur.g;}else{delete s.dataset.mode;delete s.dataset.g;}}
 
 // ---------- ağ ----------
 function stOf(p){return p&&(p.presence||p.state||p.data)||null;}
@@ -775,7 +828,7 @@ $('menuBtn2').onclick=()=>{if(room)showMenu();};
 function toLobby(){
   netGen++;try{if(room&&typeof room.leave==='function')room.leave();}catch(e){}
   for(const p of peerObjs){try{p.destroy();}catch(e){}}peerObjs=[];
-  FPS.stop();room=null;cur=null;peer=null;peerRaw=null;done=0;
+  FPS.stop();room=null;cur=null;peer=null;peerRaw=null;done=0;setMode();
   $('menu').hidden=true;$('msg').hidden=true;$('lobby').hidden=false;$('lmsg').textContent='';
   $('where').textContent='';$('helpCard').hidden=true;lastHelpG=-1;document.querySelector('.corner').hidden=true;
   setConn(false,'Bağlı değil');renderPickers();
@@ -791,6 +844,7 @@ function start(g,l,n){
   me=mkPlayer(lv,myRole);me.role=myRole;peer=null;done=0;
   $('menu').hidden=true;$('msg').hidden=true;document.querySelector('.corner').hidden=false;
   $('where').textContent=GAMES[g].fps?GAMES[g].name:GAMES[g].name+' · Bölüm '+(l+1)+'/'+LEVELS;
+  setMode();
   if(GAMES[g].fps)FPS.start({role:myRole,skin:mySkin,peerSkin,peerName});else FPS.stop();
 
 }
@@ -882,12 +936,13 @@ function drawSplash(t){
 function setFsIcon(on){$('fsBtn').innerHTML=on?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';$('fsBtn').setAttribute('aria-label',on?'Tam ekrandan çık':'Tam ekran');$('fsBtn').title=on?'Tam ekrandan çık':'Tam ekran';}
 $('fsBtn').onclick=async()=>{
   const box=$('box');
-  if(document.fullscreenElement){try{await document.exitFullscreen();}catch(e){}return;}
+  const fsEl=document.fullscreenElement||document.webkitFullscreenElement;
+  if(fsEl){try{await (document.exitFullscreen||document.webkitExitFullscreen).call(document);}catch(e){}return;}
   if(box.classList.contains('full')){box.classList.remove('full');setFsIcon(false);return;}
-  try{if(box.requestFullscreen){await box.requestFullscreen();return;}}catch(e){}
+  try{const rq=box.requestFullscreen||box.webkitRequestFullscreen;if(rq){const r=rq.call(box);if(r&&r.then)await r;if(document.fullscreenElement||document.webkitFullscreenElement)return;}}catch(e){}
   box.classList.add('full');setFsIcon(true);
 };
-document.addEventListener('fullscreenchange',()=>setFsIcon(!!document.fullscreenElement||$('box').classList.contains('full')));
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>setFsIcon(!!(document.fullscreenElement||document.webkitFullscreenElement)||$('box').classList.contains('full'))));
 addEventListener('keydown',e=>{if(e.code==='Escape'&&$('box').classList.contains('full')&&!document.fullscreenElement){$('box').classList.remove('full');setFsIcon(false);}});
 let acc=0,last=performance.now();
 function frame(now){acc+=Math.min(100,now-last);last=now;while(acc>=1000/60){acc-=1000/60;tick++;update(now);}draw();send(now);requestAnimationFrame(frame);}
