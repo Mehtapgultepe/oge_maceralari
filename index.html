@@ -50,7 +50,8 @@ summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
 .bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:12px;font-size:15px;color:var(--muted)}
 .bar b{color:var(--ink)}.bar button{min-height:38px;padding:6px 12px;font-size:14px}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#777;margin-right:6px;vertical-align:middle}.dot.on{background:#5be37a}
-.corner{position:absolute;top:16px;right:16px;min-height:36px;padding:6px 12px;font-size:14px;background:rgba(38,33,92,.75);border:1px solid #7F77DD}
+.corner{position:absolute;top:16px;right:16px;display:flex;gap:6px}.corner button{min-height:38px;padding:6px 12px;font-size:14px;background:rgba(38,33,92,.75);border:1px solid #7F77DD;display:flex;align-items:center}
+.icon{display:flex;align-items:center;justify-content:center}
 .help{margin-top:10px;font-size:14px;color:var(--muted)}
 .touch{display:none;gap:8px;margin-top:12px;flex-wrap:wrap}
 .touch button{flex:1 1 60px;font-size:20px;min-height:58px;user-select:none;-webkit-user-select:none;touch-action:none}
@@ -62,7 +63,7 @@ summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
   <h1>Oge Macerası</h1>
   <div class="box">
     <canvas id="cv" width="960" height="600"></canvas>
-    <button class="corner" id="menuBtn2" aria-label="Oyun menüsü">☰ Menü</button>
+    <div class="corner"><button id="homeBtn3" aria-label="Ana ekran" title="Ana ekran"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button><button id="menuBtn2" aria-label="Oyun menüsü">☰ Menü</button></div>
     <div class="ov" id="lobby"><div class="card">
       <h2>Dört oyun, iki oyuncu, 120 bölüm</h2>
       <p>İkiniz de aynı oda kodunu girin; biriniz 1. oyuncu, öbürünüz 2. oyuncu olsun.</p>
@@ -81,7 +82,7 @@ summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
       <div class="lvls" id="lvls"></div>
       <details><summary>Karakter ve arka plan</summary><div class="skins" style="margin-top:8px"></div><div class="themes" style="margin-top:8px"></div></details>
       <p>Geçtiğiniz bölümden sonrakinin kilidi açılır. Ortağın bir bölüm seçerse sen de oraya geçersin.</p>
-      <div class="row"><button class="ghost" id="closeMenu">Oyuna dön</button><button class="ghost" id="homeBtn2">Ana ekrana dön</button></div>
+      <div class="row"><button class="ghost" id="closeMenu">Oyuna dön</button><button class="ghost icon" id="homeBtn2" aria-label="Ana ekran" title="Ana ekran" style="flex:0 0 56px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button></div>
     </div></div>
     <div class="ov" id="msg" hidden><div class="card" style="text-align:center"><h2 id="mt"></h2><p id="mp"></p></div></div>
   </div>
@@ -91,7 +92,7 @@ summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
     <span>Sen: <b id="rname">—</b></span>
     <span id="roomtxt"></span>
     <button class="ghost" id="menuBtn">Oyun menüsü</button>
-    <button class="ghost" id="homeBtn">Ana ekran</button>
+    <button class="ghost icon" id="homeBtn" aria-label="Ana ekran" title="Ana ekran"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button>
   </div>
   <div class="touch" id="touch"><button data-k="L">◀</button><button data-k="R">▶</button><button data-k="U">▲</button><button data-k="D">▼</button><button data-k="Z">Çek</button><button data-k="X">İt</button></div>
   <p class="help" id="help">Odaya girdikten sonra oyun menüsünden bir oyun seç.</p>
@@ -417,7 +418,7 @@ function toLobby(){
   $('roomtxt').textContent='';$('gname').textContent='—';$('lv').textContent='—';$('rname').textContent='—';
   setConn(false,'Bağlı değil');$('help').textContent='Odaya girdikten sonra oyun menüsünden bir oyun seç.';renderPickers();
 }
-$('homeBtn').onclick=toLobby;$('homeBtn2').onclick=toLobby;
+$('homeBtn').onclick=toLobby;$('homeBtn2').onclick=toLobby;$('homeBtn3').onclick=()=>{if(room)toLobby();};
 addEventListener('keydown',e=>{if(e.code==='Escape'&&room){if($('menu').hidden)showMenu();else if(cur)$('menu').hidden=true;}});
 $('closeMenu').onclick=()=>{if(cur)$('menu').hidden=true;};
 
