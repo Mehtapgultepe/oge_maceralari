@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>İkili Oyunlar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: oyunbaz, iki kişilik, sıcak
+   IDEA: dört kartuşlu bir oyun salonu kasası
+   PICTURE: oyun tuvali ekranın büyük kısmı, menü onun üstünde açılır
+   COLOUR and TYPE: gece moru zemin, her oyuna kendi iki rengi; Rubik
+   LAYOUT: başlık, tuval, durum satırı, kontroller */
+:root{color-scheme:light dark;--bg:light-dark(#1d1630,#120d1c);--ink:#f3eefc;--muted:#b9afd0;--line:#4a3d6b}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:radial-gradient(ellipse at 50% -10%,#3b2c63 0%,var(--bg) 65%);color:var(--ink);font:16px/1.5 Rubik,system-ui,sans-serif;min-height:100vh;overflow-x:clip}
+.wrap{max-width:1000px;margin:0 auto;padding:18px max(3vw,10px) 28px}
+h1{font-size:clamp(26px,4vw,38px);line-height:1.05;margin:0 0 12px;font-weight:800;text-wrap:balance}
+.box{position:relative;border-radius:14px;padding:8px;background:linear-gradient(#4b3c74,#221a36);box-shadow:0 16px 40px #0009,inset 0 1px 0 #ffffff22}
+canvas{display:block;width:100%;height:auto;border-radius:8px;background:#120d1c}
+.ov{position:absolute;inset:8px;display:grid;place-items:center;background:#0d0916e6;border-radius:8px;padding:14px;overflow:auto}
+.ov[hidden]{display:none}
+.card{width:min(560px,100%);display:grid;gap:12px}
+.card h2{margin:0;font-size:24px;line-height:1.15}
+.card p{margin:0;color:var(--muted);font-size:15px}
+label{font-size:14px;color:var(--muted);display:grid;gap:4px}
+input{font:16px Rubik,sans-serif;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#1a1329;color:var(--ink);min-height:44px}
+input:focus-visible,button:focus-visible{outline:3px solid #ffd36b;outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1 1 140px}
+button{font:600 16px Rubik,sans-serif;min-height:44px;padding:10px 14px;border-radius:10px;border:0;cursor:pointer;color:#fff;background:#5a4a86}
+button.sel{box-shadow:0 0 0 3px #ffd36b}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+button:disabled{opacity:.3;cursor:not-allowed}
+.games{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:8px}
+.gcard{display:grid;gap:2px;text-align:left;background:linear-gradient(135deg,var(--c1),var(--c2));padding:12px;min-height:74px}
+.gcard b{font-size:16px;line-height:1.2}.gcard span{font-size:13px;opacity:.9;font-weight:400}
+.lvls{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
+.lv{padding:0;min-height:40px;font-size:15px}
+@media(max-width:520px){.lvls{grid-template-columns:repeat(6,minmax(0,1fr))}}
+.bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:12px;font-size:15px;color:var(--muted)}
+.bar b{color:var(--ink)}.bar button{min-height:38px;padding:6px 12px;font-size:14px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#777;margin-right:6px;vertical-align:middle}.dot.on{background:#5be37a}
+.help{margin-top:10px;font-size:14px;color:var(--muted)}
+.touch{display:none;gap:8px;margin-top:12px;flex-wrap:wrap}
+.touch button{flex:1 1 60px;font-size:20px;min-height:58px;user-select:none;-webkit-user-select:none;touch-action:none}
+@media (pointer:coarse){.touch{display:flex}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>İkili Oyunlar</h1>
+  <div class="box">
+    <canvas id="cv" width="960" height="600"></canvas>
+    <div class="ov" id="lobby"><div class="card">
+      <h2>Dört oyun, iki oyuncu, 120 bölüm</h2>
+      <p>İkiniz de aynı oda kodunu girin. Biriniz 1. oyuncu, öbürünüz 2. oyuncu olsun. Odaya girince oyunu ve bölümü birlikte seçersiniz; biriniz seçince ötekinde de açılır.</p>
+      <label>Adın<input id="name" maxlength="16" placeholder="Mehtap"></label>
+      <label>Oda kodu<input id="code" maxlength="10"></label>
+      <div class="row"><button id="r0">1. oyuncu</button><button id="r1">2. oyuncu</button></div>
+      <button id="join">Odaya gir</button>
+      <p id="lmsg"></p>
+    </div></div>
+    <div class="ov" id="menu" hidden><div class="card">
+      <h2>Ne oynayalım?</h2>
+      <div class="games" id="games"></div>
+      <p id="gdesc"></p>
+      <div class="lvls" id="lvls"></div>
+      <p>Geçtiğiniz bölümden sonrakinin kilidi açılır. Ortağın bir bölüm seçerse sen de oraya geçersin.</p>
+      <button class="ghost" id="closeMenu">Kapat</button>
+    </div></div>
+    <div class="ov" id="msg" hidden><div class="card" style="text-align:center"><h2 id="mt"></h2><p id="mp"></p></div></div>
+  </div>
+  <div class="bar">
+    <span><span class="dot" id="cdot"></span><span id="conn">Bağlı değil</span></span>
+    <span><b id="gname">—</b> · Bölüm <b id="lv">—</b></span>
+    <span>Sen: <b id="rname">—</b></span>
+    <span id="roomtxt"></span>
+    <button class="ghost" id="menuBtn">Oyun menüsü</button>
+  </div>
+  <div class="touch" id="touch"><button data-k="L">◀</button><button data-k="R">▶</button><button data-k="U">▲</button><button data-k="D">▼</button><button data-k="Z">Çek</button><button data-k="X">İt</button></div>
+  <p class="help" id="help">Odaya girdikten sonra oyun menüsünden bir oyun seç.</p>
+</div>
+<script>
+{
+// ===== ÇEKİRDEK: bölüm üretici + fizik (DOM kullanmaz) =====
+const T=30,H=20,PW=20,PH=26,GRAV=0.45,JUMP=-10,SPD=3.3,LEVELS=30;
+const GAMES=[
+ {name:'Ayna Dünya',roles:['Üst dünya','Alt dünya'],desc:'Biriniz yukarıda, biriniz ters yerçekimli alt dünyada. Birinin bastığı düğme, öbürünün dünyasında köprü kurar ya da kapı açar.'},
+ {name:'Işık ve Gölge',roles:['Fener','Gölge'],desc:'Fener sadece etrafını görür. Hayalet platformlar yalnızca fenerin ışığında katılaşır. Gölge karanlık duvarlardan geçip fenere yol açar.'},
+ {name:'İple Bağlı',roles:['Kırmızı uç','Mavi uç'],desc:'İkiniz bir iple bağlısınız. Birbirinizin omzuna çıkın, biriniz ▼ ile sabitlenince öbürü ▲ ile ipe tırmansın.'},
+ {name:'Mıknatıs İkizler',roles:['Artı (+)','Eksi (−)'],desc:'Z ile ortağına doğru çekilirsin, X ile ondan itilirsin. Birbirinizi duvarların üstüne fırlatın, uçurumları uçarak geçin.'}
+];
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+function genLevel(gi,l){
+  const d=l/(LEVELS-1),R=rng(gi*7919+l*104729+17),ri=(a,b)=>a+Math.floor(R()*(b-a+1));
+  const W0=600,g=[];for(let y=0;y<H;y++)g.push(new Array(W0).fill('.'));
+  const lv={g:gi,l,d,grid:g,W:0,cps:[],grp:{},sws:[],spk:{},light:0,rope:0,magR:0};
+  const set=(x,y,c)=>{if(y>=0&&y<H&&x>=0&&x<W0)g[y][x]=c;};
+  const fill=(x0,x1,y0,y1,c)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)set(x,y,c);};
+  const nSeg=2+Math.floor(l/4);
+  let x=6;
+  if(gi===0){ // ---------- AYNA DÜNYA ----------
+    fill(0,W0-1,0,0,'#');fill(0,W0-1,8,11,'#');fill(0,W0-1,19,19,'#');
+    const top={play:7,spike:9,bridge:8,r0:1,r1:7},bot={play:12,spike:10,bridge:11,r0:12,r1:18};
+    const seg={
+      bridge(x0){const flip=R()<.5,F=flip?bot:top,O=flip?top:bot;
+        const w=clamp(3+Math.round(d*4)+ri(0,1),3,8),w2=clamp(3+Math.round(d*4)+ri(0,1),3,8);
+        set(x0+1,O.play,'a');
+        for(let i=0;i<w;i++){set(x0+3+i,F.spike,'^');set(x0+3+i,F.bridge,'A');}
+        set(x0+3+w+1,F.play,'b');
+        const p2=x0+3+w+3;for(let i=0;i<w2;i++){set(p2+i,O.spike,'^');set(p2+i,O.bridge,'B');}
+        return 3+w+3+w2+2;},
+      gate(x0){const flip=R()<.5,F=flip?bot:top,O=flip?top:bot;
+        set(x0+2,O.play,'c');fill(x0+4,x0+4,F.r0,F.r1,'C');
+        set(x0+6,F.play,'d');fill(x0+8,x0+8,O.r0,O.r1,'D');
+        return 11;},
+      spikes(x0){const n=2+Math.floor(d*3),len=4+n*4;
+        for(const wd of [top,bot]){let p=x0+2+ri(0,1);
+          while(p<x0+len-2){const k=(d>.3&&R()<.5)?2:1;for(let i=0;i<k;i++)set(p+i,wd.play,'^');p+=k+ri(3,4);}
+          if(d>.5){const bx=x0+ri(3,len-4);const top_=wd===top;fill(bx,bx+1,top_?5:12,top_?5:14,'#');}}
+        return len;}
+    };
+    const kinds=['bridge','gate','spikes'];
+    for(let i=0;i<nSeg;i++){lv.cps.push(x);const k=i%3===2?'spikes':(R()<.55?'bridge':'gate');x+=seg[k](x);}
+    fill(x+2,x+3,5,7,'>');fill(x+2,x+3,12,14,'>');
+    lv.starts=[{x:2*T+5,y:8*T-PH},{x:2*T+5,y:12*T}];
+  } else {
+    fill(0,W0-1,0,0,'#');fill(0,W0-1,16,19,'#');
+    const pit=(x0,x1)=>{fill(x0,x1,16,17,'.');fill(x0,x1,18,18,'^');};
+    if(gi===1){ // ---------- IŞIK VE GÖLGE ----------
+      lv.light=(6-2.5*d)*T;
+      let gid=0;
+      const seg={
+        bridge(x0){const w=clamp(4+Math.round(d*6)+ri(0,2),4,12);pit(x0+1,x0+w);
+          const maxGap=lv.light>=4.5*T?3:2;let pos=x0+1,row=15;
+          while(x0+w+1-pos>maxGap){pos+=ri(1,maxGap);if(pos>x0+w)break;
+            const len=d>.6?1:ri(1,2);row=d>.4?clamp(row+ri(-1,1),13,15):15;
+            for(let i=0;i<len&&pos+i<=x0+w;i++)set(pos+i,row,'~');pos+=len;}
+          return w+2;},
+        wall(x0){const id=gid++;for(let y=1;y<=15;y++){set(x0+3,y,'X');lv.grp[(x0+3)+','+y]=id;}
+          let sx=x0+6,sy=15;
+          if(d>=.35){fill(x0+6,x0+7,14,15,'#');fill(x0+8,x0+9,12,15,'#');sx=x0+9;sy=11;}
+          set(sx,sy,'s');lv.grp[sx+','+sy]=id;return 12;},
+        climb(x0){fill(x0+2,x0+3,13,13,'~');fill(x0+4,x0+5,10,10,'~');fill(x0+6,x0+9,9,15,'#');return 11;},
+        spikes(x0){const n=2+Math.floor(d*3);let p=x0+2;for(let i=0;i<n;i++){const k=d>.3&&R()<.5?2:1;for(let j=0;j<k;j++)set(p+j,15,'^');p+=k+ri(3,4);}return p-x0+1;}
+      };
+      for(let i=0;i<nSeg;i++){lv.cps.push(x);const k=i%3===0?'bridge':i%3===1?'wall':(d>=.25&&R()<.6?'climb':'spikes');x+=seg[k](x);}
+    } else if(gi===2){ // ---------- İPLE BAĞLI ----------
+      lv.rope=(7-2*d)*T;
+      const seg={
+        wall(x0){fill(x0+4,x0+9,12,15,'#');return 12;},
+        tower(x0){fill(x0+4,x0+13,12,15,'#');fill(x0+9,x0+13,8,11,'#');return 16;},
+        pillars(x0){const w=clamp(6+Math.round(d*8),6,14);fill(x0+1,x0+w,15,15,'^');let p=x0+1+ri(1,2);
+          while(p<x0+w-1){fill(p,p,13,15,'#');p+=ri(2,d>.5?4:3);}return w+2;},
+        gate(x0){set(x0+3,15,'p');fill(x0+5,x0+5,1,15,'G');set(x0+7,15,'p');return 10;},
+        pits(x0){const n=1+Math.floor(d*2);let p=x0+2;for(let i=0;i<n;i++){const w=ri(2,4);pit(p,p+w-1);p+=w+ri(3,4);}return p-x0+1;}
+      };
+      for(let i=0;i<nSeg;i++){lv.cps.push(x);let k=['wall','pillars','gate','pits'][i%4];if(k==='wall'&&d>=.3&&R()<.6)k='tower';x+=seg[k](x);}
+    } else { // ---------- MIKNATIS ----------
+      lv.magR=(12-4*d)*T;
+      const seg={
+        wall(x0){const h=clamp(5+Math.round(d*3),5,8);fill(x0+4,x0+11,16-h,15,'#');return 14;},
+        pit(x0){const w=clamp(5+Math.round(d*4)+ri(0,1),5,Math.floor(lv.magR/T)-1);pit(x0+1,x0+w);if(d>.5){fill(x0+2,x0+w-1,9,9,'^');for(let i=x0+2;i<=x0+w-1;i++)lv.spk[i+',9']='d';}return w+2;},
+        islands(x0){const n=2+Math.floor(d*2);let p=x0+1;const parts=[];for(let i=0;i<n;i++){const gp=ri(5,6);parts.push([p,p+gp-1]);p+=gp;const r=ri(11,14);fill(p,p+1,r,r,'#');p+=2;}
+          const gp=ri(5,6);parts.push([p,p+gp-1]);p+=gp;for(const [a,b] of parts)pit(a,b);return p-x0+1;},
+        spikes(x0){const n=2+Math.floor(d*3);let p=x0+2;for(let i=0;i<n;i++){const k=R()<.5?2:1;for(let j=0;j<k;j++)set(p+j,15,'^');p+=k+ri(3,4);}return p-x0+1;}
+      };
+      for(let i=0;i<nSeg;i++){lv.cps.push(x);let k=['wall','pit','spikes'][i%3];if(k==='spikes'&&d>=.4)k='islands';x+=seg[k](x);}
+    }
+    fill(x+2,x+3,13,15,'>');
+    lv.starts=[{x:2*T+5,y:16*T-PH},{x:3*T+5,y:16*T-PH}];
+  }
+  const W=x+7;fill(x+5,W-1,0,H-1,'#');fill(0,0,0,H-1,'#');
+  for(let y=0;y<H;y++)g[y].length=W;
+  lv.W=W;
+  for(let y=0;y<H;y++)for(let xx=0;xx<W;xx++){const c=g[y][xx];
+    if(c==='^'&&!lv.spk[xx+','+y]){const below=y+1<H?g[y+1][xx]:'#',above=y>0?g[y-1][xx]:'#';lv.spk[xx+','+y]=below==='#'?'u':above==='#'?'d':'u';}
+    if('abcdps'.includes(c))lv.sws.push({x:xx,y,c});}
+  return lv;
+}
+
+// ---------- fizik ----------
+const ov=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+const prect=p=>({x:p.x,y:p.y,w:PW,h:PH});
+function tileSolid(lv,st,tx,ty,role){
+  if(ty<0||ty>=H)return null;
+  if(tx<0||tx>=lv.W)return{x:tx*T,y:ty*T,w:T,h:T};
+  const c=lv.grid[ty][tx],full={x:tx*T,y:ty*T,w:T,h:T};
+  switch(c){
+    case '#':return full;
+    case 'A':case 'B':return st.sw[c.toLowerCase()]?{...full,dyn:1}:null;
+    case 'C':case 'D':return st.sw[c.toLowerCase()]?null:{...full,dyn:1};
+    case 'G':return st.sw.p?null:{...full,dyn:1};
+    case 'X':return (role===1||st.op.has(lv.grp[tx+','+ty]))?null:{...full,dyn:1};
+    case '~':return st.lit(tx,ty)?{x:tx*T,y:ty*T,w:T,h:10,one:1,dyn:1}:null;
+  }
+  return null;
+}
+function solidsAround(lv,st,p,role,extra){
+  const out=[],x0=Math.floor(p.x/T)-2,x1=Math.floor((p.x+PW)/T)+2,y0=Math.floor(p.y/T)-2,y1=Math.floor((p.y+PH)/T)+2;
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const r=tileSolid(lv,st,x,y,role);if(r)out.push(r);}
+  if(extra)out.push(extra);
+  const me=prect(p);return out.filter(r=>!(r.dyn&&!r.one&&ov(me,r)));
+}
+function moveBody(p,mx,my,gd,sol){
+  let ground=false;
+  p.x+=mx;for(const r of sol){if(r.one)continue;if(ov(prect(p),r)){if(mx>0)p.x=r.x-PW;else if(mx<0)p.x=r.x+r.w;}}
+  const prevB=p.y+PH-my,prevT=p.y-my;
+  p.y+=my;
+  for(const r of sol){if(!ov(prect(p),r))continue;
+    if(r.one){ if(gd>0&&my>=0&&prevB<=r.y+0.5){p.y=r.y-PH;ground=true;p.vy=0;p.onPeer=!!r.peer;} continue;}
+    if(my>0){p.y=r.y-PH;if(gd>0)ground=true;}else if(my<0){p.y=r.y+r.h;if(gd<0)ground=true;}
+    p.vy=0;}
+  return ground;
+}
+function mkPlayer(lv,role){const s=lv.starts[role];return{x:s.x,y:s.y,vx:0,vy:0,ground:false,coy:0,buf:0,held:false,face:1,dead:0,cp:0,an:false,mg:0,ex:false,onPeer:false};}
+function respawn(lv,p,role,cp){
+  const s=lv.starts[role];p.cp=Math.max(p.cp,cp);const cx=p.cp>0?lv.cps[p.cp]:null;
+  p.x=cx!=null?cx*T+5:s.x;p.y=s.y;p.vx=p.vy=0;p.dead=0;
+}
+// ctx: {lv,st,role,peer:{cx,cy,rx,ry,dx,an,dead,cp}|null}
+function stepPlayer(p,inp,ctx){
+  const {lv,st,role,peer}=ctx,gi=lv.g;
+  if(p.dead>0){p.dead--;if(p.dead===0)respawn(lv,p,role,peer?peer.cp:0);return;}
+  const gd=(gi===0&&role===1)?-1:1;
+  let grav=GRAV,magOn=false;
+  const pcx=p.x+PW/2,pcy=p.y+PH/2;
+  let dx=0,dy=0,dist=1e9;
+  const live=peer&&!peer.dead;
+  if(live){dx=peer.cx-pcx;dy=peer.cy-pcy;dist=Math.hypot(dx,dy)||1;}
+  p.an=gi===2&&inp.D&&p.ground;
+  const dir=(inp.R?1:0)-(inp.L?1:0);if(dir)p.face=dir;
+  const tv=p.an?0:dir*SPD;
+  p.mg=gi===3?(inp.Z?1:inp.X?-1:0):0;
+  let ax=0,ay=0;
+  if(p.mg&&live&&dist<lv.magR&&dist>22){ax=p.mg*dx/dist*0.8;ay=p.mg*dy/dist*0.8;grav=0.25;magOn=true;}
+  if(p.ground&&!magOn)p.vx=tv;else p.vx+=(tv-p.vx)*(magOn?0.05:0.25);
+  p.vx=clamp(p.vx+ax,-9,9);p.vy+=ay;
+  if(inp.U&&!p.held)p.buf=7;p.held=inp.U;if(p.buf>0)p.buf--;
+  if(p.ground)p.coy=6;else if(p.coy>0)p.coy--;
+  if(p.buf>0&&p.coy>0&&!p.an){p.vy=JUMP*gd;p.buf=0;p.coy=0;p.ground=false;}
+  let climbing=false;
+  if(gi===2&&live&&peer.an&&inp.U&&!p.ground&&dist>36){p.vx=dx/dist*3.2;p.vy=dy/dist*3.2;climbing=true;}
+  if(!climbing){if(!inp.U&&p.vy*gd<-4)p.vy+=0.5*gd;p.vy=clamp(p.vy+grav*gd,-11,11);}
+  let plat=null;
+  if((gi===2||gi===3)&&live)plat={x:peer.rx,y:peer.ry,w:PW,h:6,one:1,peer:1};
+  p.onPeer=false;
+  p.ground=moveBody(p,p.vx,p.vy,gd,solidsAround(lv,st,p,role,plat));
+  if(p.onPeer&&live&&peer.dx)moveBody(p,peer.dx,0,gd,solidsAround(lv,st,p,role,null));
+  if(gi===2&&live){const cx=p.x+PW/2,cy=p.y+PH/2,ex=cx-peer.cx,ey=cy-peer.cy,dd=Math.hypot(ex,ey);
+    if(dd>lv.rope){const w=peer.an?1:(p.an?0:0.5);if(w){const ux=ex/dd,uy=ey/dd,e=(dd-lv.rope)*w;
+      const g2=moveBody(p,-ux*e,-uy*e,gd,solidsAround(lv,st,p,role,null));p.ground=p.ground||g2;
+      const vr=p.vx*ux+p.vy*uy;if(vr>0){p.vx-=vr*ux;p.vy-=vr*uy;}}}}
+  // tehlikeler
+  const me=prect(p),x0=Math.floor(p.x/T)-1,x1=Math.floor((p.x+PW)/T)+1,y0=Math.floor(p.y/T)-1,y1=Math.floor((p.y+PH)/T)+1;
+  p.ex=false;
+  for(let y=Math.max(0,y0);y<=Math.min(H-1,y1);y++)for(let x=Math.max(0,x0);x<=Math.min(lv.W-1,x1);x++){
+    const c=lv.grid[y][x];
+    if(c==='^'){const o=lv.spk[x+','+y];const r=o==='d'?{x:x*T+5,y:y*T,w:20,h:16}:{x:x*T+5,y:y*T+14,w:20,h:16};if(ov(me,r)){p.dead=45;return;}}
+    if(c==='>'&&ov(me,{x:x*T,y:y*T,w:T,h:T}))p.ex=true;
+  }
+  if(p.y>H*T+40||p.y<-60){p.dead=45;return;}
+  for(let i=lv.cps.length-1;i>p.cp;i--)if(p.x>lv.cps[i]*T+T){p.cp=i;break;}
+}
+function computeSwitches(lv,st,bodies){
+  st.sw={};
+  for(const s of lv.sws){const r={x:s.x*T+3,y:s.y*T+(s.y>=12&&lv.g===0?0:18),w:24,h:12};
+    for(const b of bodies){if(!b||b.dead)continue;if(ov(prect(b),r)){
+      if(s.c==='s'){if(b.role===1)st.op.add(lv.grp[s.x+','+s.y]);}else st.sw[s.c]=true;}}}
+}
+
+
+// ===== ARAYÜZ, ÇİZİM, AĞ =====
+const cv=document.getElementById('cv'),cx=cv.getContext('2d');
+const $=id=>document.getElementById(id);
+const THEME=[
+ {bg:['#1b2346','#2b1838'],tile:'#9aa3c7',tile2:'#7b84ab',edge:'#d7dcf5',c:['#ff8a4c','#5fd0ff']},
+ {bg:['#0b0b12','#05050a'],tile:'#34344a',tile2:'#2c2c40',edge:'#55557a',c:['#ffd76a','#9a6bff']},
+ {bg:['#1c3326','#10201a'],tile:'#6b5338',tile2:'#5d4830',edge:'#9ccf6a',c:['#ff5f5f','#4fa9ff']},
+ {bg:['#18202b','#0e141c'],tile:'#4a5668',tile2:'#414c5c',edge:'#9fb0c8',c:['#ff4d4d','#3d8bff']}
+];
+let myName='',myRole=0,myCode='',room=null;
+let cur=null; // {g,l,n}
+let lv=null,st=null,me=null,peer=null,peerRaw=null,peerName='',done=0,lastSend=0,tick=0;
+let pickN=0;
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function loadK(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v;}catch(e){return d;}}
+let unlocked=loadK('cl_unlock',[1,1,1,1]);
+const rnd=()=>Math.random().toString(36).slice(2,6).toUpperCase();
+$('name').value=loadK('cl_name','');$('code').value=rnd();
+function pickRole(r){myRole=r;$('r0').classList.toggle('sel',r===0);$('r1').classList.toggle('sel',r===1);}
+pickRole(0);$('r0').onclick=()=>pickRole(0);$('r1').onclick=()=>pickRole(1);
+
+// ---------- giriş ----------
+const keys={};
+const KM={ArrowLeft:'L',KeyA:'L',ArrowRight:'R',KeyD:'R',ArrowUp:'U',KeyW:'U',Space:'U',ArrowDown:'D',KeyS:'D',KeyZ:'Z',KeyJ:'Z',KeyX:'X',KeyK:'X'};
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;const k=KM[e.code];if(k){keys[k]=1;e.preventDefault();}if(e.code==='KeyR'&&me&&!me.dead)me.dead=1;});
+addEventListener('keyup',e=>{const k=KM[e.code];if(k)keys[k]=0;});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=0;});
+document.querySelectorAll('#touch button').forEach(b=>{const k=b.dataset.k;
+  b.addEventListener('pointerdown',e=>{keys[k]=1;e.preventDefault();});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=0));});
+
+// ---------- ağ ----------
+function stOf(p){return p&&(p.presence||p.state||p.data)||null;}
+function isMe(p){return p&&(p.you||p.self||p.isSelf||p.me||p.isYou);}
+function setConn(on,t){$('cdot').classList.toggle('on',on);$('conn').textContent=t;}
+async function join(){
+  myName=($('name').value.trim()||'Oyuncu').slice(0,16);save('cl_name',myName);
+  myCode=($('code').value.trim()||rnd()).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);
+  $('lmsg').textContent='Bağlanıyor…';
+  let root=null;
+  if(window.claude&&typeof window.claude.use==='function'){try{root=await window.claude.use('room');}catch(e){}}
+  room=null;
+  if(!root){try{room=await peerRoom(myCode);}catch(e){$('lmsg').textContent='Bağlantı kurulamadı: '+String(e&&e.message||e).slice(0,100);return;}}
+  if(!room){
+  try{if(typeof root.join==='function'){const r=await root.join('ikili'+myCode);if(r&&typeof r.presence==='function'&&typeof r.onPeers==='function')room=r;}}catch(e){}
+  if(!room&&typeof root.presence==='function')room=root;
+  }
+  if(!room){$('lmsg').textContent='Odaya girilemedi, tekrar dene.';return;}
+  room.onPeers(onPeers);
+  $('lobby').hidden=true;$('roomtxt').textContent='Oda: '+myCode;setConn(false,'Ortağın bekleniyor…');
+  showMenu();
+}
+function onPeers(list){
+  const arr=(Array.isArray(list)?list:Object.values(list||{})).filter(p=>!isMe(p)).map(stOf).filter(s=>s&&s.c===myCode&&(s.r===0||s.r===1));
+  const o=arr.find(s=>s.r!==myRole)||null;
+  if(!o){peerRaw=null;peer=null;setConn(false,arr.length?'Ortağın da '+(myRole+1)+'. oyuncuyu seçmiş, biriniz değiştirsin':'Ortağın bekleniyor…');return;}
+  peerRaw=o;peerName=String(o.n||'Ortağın').slice(0,16);setConn(true,peerName+' bağlı');
+  const pg=+o.g,pl=+o.l,pn=+o.pn||0;
+  if(Number.isInteger(pg)&&pg>=0&&pg<4&&Number.isInteger(pl)&&pl>=0&&pl<LEVELS){
+    if(!cur||pn>cur.n||(pn===cur.n&&pg===cur.g&&pl>cur.l))start(pg,pl,pn);
+  }
+  if(cur&&pg===cur.g&&pl===cur.l){
+    if(!peer)peer={rx:+o.x||0,ry:+o.y||0};
+    Object.assign(peer,{x:+o.x||0,y:+o.y||0,f:o.f===-1?-1:1,dead:!!o.dead,an:!!o.an,mg:+o.mg||0,ex:!!o.ex,cp:+o.cp||0});
+    if(Array.isArray(o.op)&&st)for(const id of o.op)if(Number.isInteger(id))st.op.add(id);
+  } else peer=null;
+}
+function send(now){
+  if(!room||now-lastSend<55)return;lastSend=now;
+  const s={c:myCode,n:myName,r:myRole};
+  if(cur&&me)Object.assign(s,{g:cur.g,l:cur.l,pn:cur.n,x:Math.round(me.x),y:Math.round(me.y),f:me.face,dead:me.dead>0,an:me.an,mg:me.mg,ex:me.ex,cp:me.cp,op:[...st.op]});
+  try{room.presence(s);}catch(e){}
+}
+$('join').onclick=join;
+// ---------- claude.ai dışında: PeerJS ile doğrudan bağlantı ----------
+function loadPeerJs(){return new Promise((res,rej)=>{if(window.Peer)return res();const s=document.createElement('script');s.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';s.onload=res;s.onerror=()=>rej(new Error('PeerJS yüklenemedi'));document.head.appendChild(s);});}
+async function peerRoom(code){
+  await loadPeerJs();
+  const hostId='ikili-oyunlar-'+code.toLowerCase();
+  let conn=null,cb=null;
+  const attach=c=>{conn=c;c.on('data',d=>{if(cb&&d&&typeof d==='object')cb([{presence:d}]);});c.on('close',()=>{if(conn===c){conn=null;if(cb)cb([]);}});};
+  const api={presence(s){if(conn&&conn.open){try{conn.send(s);}catch(e){}}},onPeers(f){cb=f;}};
+  return new Promise((res,rej)=>{
+    const host=new Peer(hostId);let settled=false;
+    host.on('open',()=>{settled=true;host.on('connection',c=>{if(conn)try{conn.close();}catch(e){}attach(c);});res(api);});
+    host.on('error',err=>{
+      if(err&&err.type==='unavailable-id'){ // oda zaten açık: misafir olarak bağlan
+        try{host.destroy();}catch(e){}
+        const guest=new Peer();
+        const connect=()=>{const c=guest.connect(hostId);c.on('open',()=>attach(c));c.on('close',()=>setTimeout(()=>{if(!conn)connect();},1500));};
+        guest.on('open',()=>{connect();res(api);});
+        guest.on('error',e=>{if(!settled){settled=true;rej(e);}});
+      } else if(!settled){settled=true;rej(err);}
+    });
+  });
+}
+
+
+// ---------- menü ----------
+let menuG=0;
+function showMenu(){$('menu').hidden=false;renderMenu();}
+function renderMenu(){
+  $('games').innerHTML=GAMES.map((g,i)=>`<button class="gcard${i===menuG?' sel':''}" data-g="${i}" style="--c1:${THEME[i].c[0]};--c2:${THEME[i].c[1]}"><b>${g.name}</b><span>${g.roles[myRole]} olacaksın</span></button>`).join('');
+  $('gdesc').textContent=GAMES[menuG].desc;
+  const u=unlocked[menuG]||1;
+  $('lvls').innerHTML=Array.from({length:LEVELS},(_,i)=>`<button class="lv" data-l="${i}" ${i<u?'':'disabled'}>${i+1}</button>`).join('');
+  $('games').querySelectorAll('.gcard').forEach(b=>b.onclick=()=>{menuG=+b.dataset.g;renderMenu();});
+  $('lvls').querySelectorAll('.lv').forEach(b=>b.onclick=()=>{const n=Math.max(cur?cur.n:0,peerRaw?(+peerRaw.pn||0):0)+1;start(menuG,+b.dataset.l,n);});
+}
+$('menuBtn').onclick=()=>{if(room)showMenu();};
+$('closeMenu').onclick=()=>{if(cur)$('menu').hidden=true;};
+
+function start(g,l,n){
+  cur={g,l,n};lv=genLevel(g,l);
+  st={sw:{},op:new Set(),lit:()=>false};
+  me=mkPlayer(lv,myRole);me.role=myRole;peer=null;done=0;
+  $('menu').hidden=true;$('msg').hidden=true;
+  $('gname').textContent=GAMES[g].name;$('lv').textContent=(l+1)+'/'+LEVELS;$('rname').textContent=GAMES[g].roles[myRole];
+  $('help').textContent=HELP[g];
+}
+const HELP=[
+ 'Ok tuşları ya da W A D ile hareket. Düğmenin üstünde durduğun sürece ortağının dünyasında köprü belirir ya da kapı açılır. R: yeniden doğ.',
+ 'Ok tuşları ya da W A D. Fener sadece etrafını görür; Gölge her yeri görür ama hayalet platformlara yalnızca fenerin yakınında basabilir. Gölge mor duvarlardan geçer, arkadaki düğme duvarı açar. R: yeniden doğ.',
+ 'Ok tuşları ya da W A D. ▼ (S) yerdeyken seni sabitler; ortağın sabitken havada ▲ basılı tutarsan ipe tırmanırsın. Birbirinizin omzuna çıkabilirsiniz. R: yeniden doğ.',
+ 'Ok tuşları ya da W A D. Z (J) basılı: ortağına çekilirsin. X (K) basılı: ondan itilirsin. Ortağının omzundayken X yukarı fırlatır. Menzil bölüm ilerledikçe kısalır. R: yeniden doğ.'
+];
+
+// ---------- döngü ----------
+let acc=0,last=performance.now();
+function frame(now){acc+=Math.min(100,now-last);last=now;while(acc>=1000/60){acc-=1000/60;tick++;update(now);}draw();send(now);requestAnimationFrame(frame);}
+function peerCtx(){
+  if(!peer)return null;
+  const prx=peer.rx,pry=peer.ry;peer.rx+=(peer.x-peer.rx)*0.4;peer.ry+=(peer.y-peer.ry)*0.4;
+  return{rx:peer.rx,ry:peer.ry,cx:peer.rx+PW/2,cy:peer.ry+PH/2,dx:peer.rx-prx,an:peer.an,dead:peer.dead,cp:peer.cp,role:1-myRole};
+}
+function update(){
+  if(!cur||done<0)return;
+  const pc=peerCtx();
+  const lightP=myRole===0?{x:me.x+PW/2,y:me.y+PH/2}:(pc&&!pc.dead?{x:pc.cx,y:pc.cy}:null);
+  st.lit=(tx,ty)=>!!lightP&&Math.hypot(tx*T+15-lightP.x,ty*T+15-lightP.y)<lv.light;
+  st.lightP=lightP;
+  computeSwitches(lv,st,[{...me,role:myRole},pc?{x:pc.rx,y:pc.ry,dead:pc.dead,role:1-myRole}:null]);
+  if(!done)stepPlayer(me,keys,{lv,st,role:myRole,peer:pc});
+  if(!done&&me.ex&&peer&&peer.ex){done=1;
+    unlocked[cur.g]=Math.max(unlocked[cur.g]||1,Math.min(LEVELS,cur.l+2));save('cl_unlock',unlocked);
+    if(cur.l+1<LEVELS)msg('Bölüm '+(cur.l+1)+' tamam!','Sonraki bölüm geliyor…');else msg(GAMES[cur.g].name+' bitti! 🎉','30 bölümün hepsini birlikte geçtiniz.');}
+  if(done>0){done++;if(done>100){if(cur.l+1<LEVELS)start(cur.g,cur.l+1,cur.n);else{done=-1;$('msg').hidden=true;showMenu();}}}
+}
+function msg(t,p){$('mt').textContent=t;$('mp').textContent=p;$('msg').hidden=false;}
+
+// ---------- çizim ----------
+function draw(){
+  const W=960,Hh=600;
+  if(!cur){const g=cx.createLinearGradient(0,0,0,Hh);g.addColorStop(0,'#2a2140');g.addColorStop(1,'#120d1c');cx.fillStyle=g;cx.fillRect(0,0,W,Hh);return;}
+  const th=THEME[cur.g],t=tick/60;
+  const camX=clamp(me.x+PW/2-W/2,0,Math.max(0,lv.W*T-W));
+  const bg=cx.createLinearGradient(0,0,0,Hh);bg.addColorStop(0,th.bg[0]);bg.addColorStop(1,th.bg[1]);cx.fillStyle=bg;cx.fillRect(0,0,W,Hh);
+  if(cur.g===0){cx.fillStyle='#ffffff10';cx.fillRect(0,0,W,8*T);cx.fillStyle='#00000025';cx.fillRect(0,12*T,W,8*T);}
+  cx.save();cx.translate(-Math.round(camX),0);
+  const x0=Math.floor(camX/T),x1=Math.min(lv.W-1,x0+33);
+  for(let y=0;y<H;y++)for(let x=x0;x<=x1;x++)drawTile(lv.grid[y][x],x,y,th,t);
+  // ip / manyetik alan
+  const pc=peer&&{x:peer.rx,y:peer.ry};
+  if(pc&&cur.g===2){const ax=me.x+PW/2,ay=me.y+PH/2,bx=pc.x+PW/2,by=pc.y+PH/2,dd=Math.hypot(bx-ax,by-ay),sag=Math.max(0,lv.rope-dd)*0.5;
+    cx.strokeStyle='#e8d6a8';cx.lineWidth=3;cx.beginPath();cx.moveTo(ax,ay);cx.quadraticCurveTo((ax+bx)/2,(ay+by)/2+sag,bx,by);cx.stroke();}
+  if(pc&&cur.g===3){const ax=me.x+PW/2,ay=me.y+PH/2,bx=pc.x+PW/2,by=pc.y+PH/2,dd=Math.hypot(bx-ax,by-ay);
+    const act=(me.mg||peer.mg)&&dd<lv.magR;cx.setLineDash([6,8]);cx.lineDashOffset=-t*40*(me.mg||1);
+    cx.strokeStyle=act?(me.mg>0||peer.mg>0?'#ffe066':'#ff7ae0'):'#ffffff22';cx.lineWidth=act?3:1;cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(bx,by);cx.stroke();cx.setLineDash([]);}
+  if(peer)drawChar({x:peer.rx,y:peer.ry,face:peer.f,dead:peer.dead,an:peer.an,mg:peer.mg,ex:peer.ex},1-myRole,peerName,th,t);
+  drawChar(me,myRole,myName,th,t);
+  cx.restore();
+  if(cur.g===1)drawDark(camX,th);
+  // menzil / durum göstergeleri
+  cx.font='600 13px Rubik,sans-serif';cx.textAlign='left';cx.fillStyle='#ffffffb0';
+  if(!peer)cx.fillText('Ortağın bu bölümde değil',12,22);
+}
+function drawTile(c,x,y,th,t){
+  if(c==='.')return;const X=x*T,Y=y*T;
+  if(c==='#'){cx.fillStyle=(x+y)%2?th.tile:th.tile2;cx.fillRect(X,Y,T,T);
+    const g=lv.grid;if(y>0&&g[y-1][x]!=='#'){cx.fillStyle=th.edge;cx.fillRect(X,Y,T,3);}
+    if(y<H-1&&g[y+1][x]!=='#'&&cur.g===0){cx.fillStyle=th.edge;cx.fillRect(X,Y+T-3,T,3);}return;}
+  if(c==='^'){const d=lv.spk[x+','+y]==='d';cx.fillStyle='#e9eef5';cx.beginPath();
+    for(let i=0;i<3;i++){const bx=X+i*10;if(d){cx.moveTo(bx,Y);cx.lineTo(bx+5,Y+16);cx.lineTo(bx+10,Y);}else{cx.moveTo(bx,Y+T);cx.lineTo(bx+5,Y+14);cx.lineTo(bx+10,Y+T);}}cx.fill();return;}
+  if(c==='A'||c==='B'){const on=st.sw[c.toLowerCase()],col=c==='A'?'#ffcf33':'#4be3a1';
+    cx.globalAlpha=on?1:.25;cx.fillStyle=col;cx.fillRect(X+1,Y+1,T-2,T-2);if(!on){cx.strokeStyle=col;cx.setLineDash([4,4]);cx.strokeRect(X+3,Y+3,T-6,T-6);cx.setLineDash([]);}cx.globalAlpha=1;return;}
+  if(c==='C'||c==='D'||c==='G'){const open=c==='G'?st.sw.p:st.sw[c.toLowerCase()],col=c==='C'?'#ff6ad5':c==='D'?'#6ad0ff':'#c58bff';
+    cx.globalAlpha=open?.15:1;cx.fillStyle=col;cx.fillRect(X+6,Y,18,T);cx.fillStyle='#00000040';cx.fillRect(X+13,Y,4,T);cx.globalAlpha=1;return;}
+  if(c==='X'){if(st.op.has(lv.grp[x+','+y]))return;cx.fillStyle='#5b2d91';cx.fillRect(X+3,Y,24,T);cx.fillStyle='#8f5cd6';cx.fillRect(X+8+Math.sin(t*2+y)*3,Y,3,T);return;}
+  if('abcdps'.includes(c)){
+    const col={a:'#ffcf33',b:'#4be3a1',c:'#ff6ad5',d:'#6ad0ff',p:'#c58bff',s:'#8f5cd6'}[c];
+    const pressed=c==='s'?st.op.has(lv.grp[x+','+y]):c==='p'?st.sw.p:st.sw[c];
+    const down=cur.g===0&&y>=12;
+    cx.fillStyle='#00000060';cx.fillRect(X+2,down?Y:Y+T-4,26,4);
+    cx.fillStyle=col;const h=pressed?2:6;cx.fillRect(X+5,down?Y+4:Y+T-4-h,20,h);return;}
+  if(c==='~'){const lit=st.lit(x,y);const show=lit||myRole===1;if(!show)return;
+    cx.globalAlpha=lit?1:.3;cx.fillStyle=lit?'#fff3b0':'#b9a4ff';cx.fillRect(X,Y,T,10);cx.globalAlpha=1;return;}
+  if(c==='>'){cx.fillStyle='#ffffff18';cx.fillRect(X,Y,T,T);cx.fillStyle='#fff';cx.globalAlpha=.4+.3*Math.sin(t*3+y);cx.fillRect(X+12,Y+8,6,14);cx.globalAlpha=1;}
+}
+function drawDark(camX){
+  const L=st.lightP;const W=960,Hh=600;
+  cx.save();
+  const a=myRole===0?0.96:0.55;
+  if(!L){cx.fillStyle=`rgba(0,0,0,${a})`;cx.fillRect(0,0,W,Hh);cx.restore();return;}
+  const lx=L.x-camX,ly=L.y,r=lv.light;
+  const g=cx.createRadialGradient(lx,ly,r*0.55,lx,ly,r*1.05);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(0,0,0,${a})`);
+  cx.fillStyle=g;cx.fillRect(0,0,W,Hh);cx.restore();
+  if(myRole===0&&peer){const sx=peer.rx+PW/2-camX,sy=peer.ry+PH/2;cx.fillStyle='#9a6bff';cx.beginPath();cx.arc(sx,sy,4,0,7);cx.fill();}
+}
+function drawChar(p,role,name,th,t){
+  const col=th.c[role],X=p.x+PW/2,inv=cur.g===0&&role===1;
+  cx.save();if(p.dead)cx.globalAlpha=.3;
+  cx.translate(X,inv?p.y:p.y+PH);if(inv)cx.scale(1,-1);
+  cx.fillStyle='#00000055';cx.beginPath();cx.ellipse(0,0,11,3,0,0,7);cx.fill();
+  if(cur.g===1&&role===0){const gl=cx.createRadialGradient(0,-13,2,0,-13,30);gl.addColorStop(0,'#fff6c0aa');gl.addColorStop(1,'#fff6c000');cx.fillStyle=gl;cx.fillRect(-30,-45,60,60);}
+  const gr=cx.createLinearGradient(0,-26,0,0);gr.addColorStop(0,col);gr.addColorStop(1,'#00000066');
+  cx.fillStyle=col;cx.beginPath();cx.roundRect?cx.roundRect(-10,-26,20,26,8):cx.rect(-10,-26,20,26);cx.fill();
+  cx.fillStyle=gr;cx.globalAlpha*=.5;cx.beginPath();cx.roundRect?cx.roundRect(-10,-26,20,26,8):cx.rect(-10,-26,20,26);cx.fill();cx.globalAlpha=p.dead?.3:1;
+  const f=p.face||1;cx.fillStyle='#fff';cx.beginPath();cx.arc(f*3-4,-17,3.2,0,7);cx.arc(f*3+4,-17,3.2,0,7);cx.fill();
+  cx.fillStyle='#14101c';cx.beginPath();cx.arc(f*4-4,-17,1.6,0,7);cx.arc(f*4+4,-17,1.6,0,7);cx.fill();
+  if(cur.g===3){cx.fillStyle='#fff';cx.font='800 13px Rubik,sans-serif';cx.textAlign='center';cx.fillText(role===0?'+':'−',0,-4);
+    if(p.mg){cx.strokeStyle=p.mg>0?'#ffe066':'#ff7ae0';cx.lineWidth=2;cx.beginPath();cx.arc(0,-13,16+Math.sin(t*20)*2,0,7);cx.stroke();}}
+  if(cur.g===2&&p.an){cx.fillStyle='#e8d6a8';cx.fillRect(-12,-2,24,4);}
+  cx.restore();
+  cx.font='600 12px Rubik,sans-serif';cx.textAlign='center';cx.fillStyle='#ffffffd0';
+  const ny=inv?p.y+PH+16:p.y-8;if(name)cx.fillText(name,X,ny);
+  if(p.ex){cx.fillStyle=col;cx.fillText('✓',X,inv?ny+14:ny-14);}
+}
+requestAnimationFrame(frame);
+
+}
+</script>
+</body>
+</html>
