@@ -24,6 +24,7 @@ canvas{display:block;width:100%;height:auto;border-radius:13px;background:#cdeef
 .card{width:min(580px,100%);display:grid;gap:12px;background:var(--panel);border:1px solid rgba(255,255,255,.8);border-radius:20px;padding:22px;box-shadow:0 14px 40px rgba(40,70,110,.18)}
 .card h2{margin:0;font-size:21px;line-height:1.2;font-weight:600}
 .card p{margin:0;color:var(--muted);font-size:14px}
+.head{display:flex;align-items:center;gap:10px}.back{min-height:36px;min-width:36px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#fff}
 .lbl{font-size:13px;color:var(--muted);margin-bottom:-6px}
 label{font-size:13px;color:var(--muted);display:grid;gap:6px}
 input{font:16px Rubik,sans-serif;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);min-height:44px;outline:none}
@@ -84,7 +85,7 @@ button.big:active{transform:translateY(3px);box-shadow:0 3px 0 #3C3489}
     <div class="hcard" id="helpCard" hidden><b id="hcTitle"></b><ul id="hcList"></ul><span>Kapatmak için dokun</span></div>
     <div class="splash" id="splash"><div class="stitle">Oge Macerası</div><button class="primary big" id="startBtn">Oyuna başla</button></div>
     <div class="ov" id="lobby" hidden><div class="card">
-      <h2>Odaya katıl</h2>
+      <div class="head"><button class="back" id="backBtn" aria-label="Geri" title="Geri"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><h2>Odaya katıl</h2></div>
       <div class="row"><label>Adın<input id="name" maxlength="16" placeholder="Mehtap"></label>
       <label>Oda kodu<input id="code" maxlength="10"></label></div>
       <div class="seg"><button id="r0">1. oyuncu</button><button id="r1">2. oyuncu</button></div>
@@ -478,6 +479,7 @@ function showHelp(g){
 let splashOn=true;
 $('startBtn').onclick=()=>{splashOn=false;$('splash').hidden=true;$('lobby').hidden=false;document.querySelector('.corner').hidden=false;};
 document.querySelector('.corner').hidden=true;
+$('backBtn').onclick=()=>{splashOn=true;$('lobby').hidden=true;$('splash').hidden=false;document.querySelector('.corner').hidden=true;};
 function cloud(c,x,y,s){s=s||1;c.beginPath();c.ellipse(x,y,56*s,17*s,0,0,7);c.fill();c.beginPath();c.ellipse(x+24*s,y-13*s,31*s,19*s,0,0,7);c.fill();c.beginPath();c.ellipse(x-21*s,y-7*s,25*s,15*s,0,0,7);c.fill();}
 function drawKid(x,y,s,girl,t,wave){
   const c=cx;c.save();c.translate(x,y);c.scale(s,s);
