@@ -501,34 +501,59 @@ const FPS=(()=>{
     tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0xfff2a0}));tracer.visible=false;scene.add(tracer);
     ready=true;
   }
-  let bfly=null;
+  let bfly=null,GP={};
   const SKIN=0xF5C9A8,SKIN2=0xE8AE88;
-  function fist(axis){ // kabzayı saran yumruk: axis 'y' (dikey kabza) ya da 'z' (yatay sap)
-    const g=new THREE.Group(),sk=new THREE.MeshLambertMaterial({color:SKIN}),sk2=new THREE.MeshLambertMaterial({color:SKIN2});
-    const palm=new THREE.Mesh(new THREE.BoxGeometry(.05,axis==='y'?.085:.05,axis==='y'?.05:.085),sk);palm.position.set(.018,0,0);g.add(palm);
-    for(let i=0;i<4;i++){const fg=new THREE.Mesh(new THREE.BoxGeometry(.022,.017,.017),i%2?sk:sk2);
-      const o=-.027+i*.018;if(axis==='y')fg.position.set(-.02,o,-.012);else fg.position.set(-.02,-.012,o);g.add(fg);
-      const tip=new THREE.Mesh(new THREE.BoxGeometry(.014,.015,.015),sk);if(axis==='y')tip.position.set(-.028,o,.006);else tip.position.set(-.028,.006,o);g.add(tip);}
-    const th=new THREE.Mesh(new THREE.BoxGeometry(.016,.016,.05),sk2);if(axis==='y'){th.position.set(-.012,.045,-.015);th.rotation.x=.3;}else{th.position.set(-.012,.03,-.02);th.rotation.y=.2;}g.add(th);
+  const MAT={};
+  function mat(c,sh){const k=c+'_'+(sh||0);return MAT[k]||(MAT[k]=new THREE.MeshPhongMaterial({color:c,shininess:sh||12,specular:sh?0x888888:0x111111}));}
+  function seg(r0,r1,len){const g=new THREE.CylinderGeometry(r1,r0,len,10);g.translate(0,len/2,0);return g;}
+  // boğumlu parmak: local +y yönünde uzanır, her boğumda kıvrılır
+  function finger(r,lens,curl){const root=new THREE.Group();let par=root;
+    lens.forEach((L,i)=>{const j=new THREE.Group();if(i>0){j.position.y=lens[i-1];}j.rotation.x=curl[i];par.add(j);
+      const m=new THREE.Mesh(seg(r*(1-i*.08),r*(1-(i+1)*.08),L),mat(SKIN));j.add(m);
+      const k=new THREE.Mesh(new THREE.SphereGeometry(r*(1-i*.08),10,8),mat(i?SKIN:SKIN2));j.add(k);par=j;});
+    const tip=new THREE.Mesh(new THREE.SphereGeometry(r*.7,10,8),mat(SKIN));tip.position.y=lens[lens.length-1];par.add(tip);
+    return root;}
+  // kabzayı saran el. Kabza ekseni el grubunun local y ekseni; avuç +x tarafında, parmaklar öne (-z) ve sola sarar
+  function hand(){const g=new THREE.Group();
+    const palm=new THREE.Mesh(new THREE.SphereGeometry(.034,14,10),mat(SKIN));palm.scale.set(.85,1.25,1.05);palm.position.set(.026,0,.006);g.add(palm);
+    const back=new THREE.Mesh(new THREE.SphereGeometry(.03,12,8),mat(SKIN2));back.scale.set(.7,1.2,.9);back.position.set(.04,0,.016);g.add(back);
+    for(let i=0;i<4;i++){const fg=finger(.0088-i*.0006,[.026,.02,.016],[0,1.25,1.1]);
+      fg.position.set(.012,.028-i*.019,-.026);fg.rotation.set(0,0,Math.PI/2);fg.rotation.order='ZYX';fg.rotateX(-.25);g.add(fg);}
+    const th=finger(.0095,[.024,.022],[0,.5]);th.position.set(.01,.042,.008);th.rotation.set(-1.9,0,.7);g.add(th);
     return g;}
-  function arm(anchor,dir,axis){
-    const g=new THREE.Group(),d=new THREE.Vector3(...dir).normalize(),up=new THREE.Vector3(0,1,0),q=new THREE.Quaternion().setFromUnitVectors(up,d);
-    const h=fist(axis);h.position.set(...anchor);g.add(h);
-    const fa=new THREE.Mesh(new THREE.CylinderGeometry(.03,.036,.3,10),new THREE.MeshLambertMaterial({color:SKIN}));fa.quaternion.copy(q);fa.position.copy(new THREE.Vector3(...anchor).add(d.clone().multiplyScalar(.15)));g.add(fa);
-    const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.05,.058,.5,12),new THREE.MeshLambertMaterial({color:role===0?0xE24B4A:0x378ADD}));sleeve.quaternion.copy(q);sleeve.position.copy(new THREE.Vector3(...anchor).add(d.clone().multiplyScalar(.5)));g.add(sleeve);
-    const cuff=new THREE.Mesh(new THREE.CylinderGeometry(.052,.052,.03,12),new THREE.MeshLambertMaterial({color:0xffffff}));cuff.quaternion.copy(q);cuff.position.copy(new THREE.Vector3(...anchor).add(d.clone().multiplyScalar(.255)));g.add(cuff);
-    return g;}
+  // kol: el silaha bağlı, dirsek kamerada sabit; ön kol her karede bilek ile dirsek arasına uzanır
+  let ARMS=[],armsG=null;
+  function arm(anchor,elbow,handRot,parent){
+    const h=hand();h.position.set(...anchor);if(handRot)h.rotation.set(...handRot);parent.add(h);
+    if(!armsG){armsG=new THREE.Group();camera.add(armsG);}
+    const wrist=new THREE.Mesh(new THREE.SphereGeometry(.031,12,8),mat(SKIN));armsG.add(wrist);
+    const fore=new THREE.Mesh(seg(.031,.04,1),mat(SKIN));armsG.add(fore);
+    const cuff=new THREE.Mesh(seg(.046,.048,1),mat(0xffffff));armsG.add(cuff);
+    const sleeve=new THREE.Mesh(seg(.052,.066,1),mat(role===0?0xE24B4A:0x378ADD));armsG.add(sleeve);
+    ARMS.push({h,el:new THREE.Vector3(...elbow),wrist,fore,cuff,sleeve,off:new THREE.Vector3(.03,-.052,.028)});
+  }
+  function updateArms(){
+    if(!ARMS.length)return;camera.updateMatrixWorld(true);const up=new THREE.Vector3(0,1,0);
+    for(const a of ARMS){const w=a.h.localToWorld(a.off.clone());camera.worldToLocal(w);
+      const d=a.el.clone().sub(w),L=d.length();d.normalize();const q=new THREE.Quaternion().setFromUnitVectors(up,d);
+      a.wrist.position.copy(w);
+      a.fore.position.copy(w);a.fore.quaternion.copy(q);a.fore.scale.set(1,L*.55,1);
+      a.cuff.position.copy(w.clone().add(d.clone().multiplyScalar(L*.53)));a.cuff.quaternion.copy(q);a.cuff.scale.set(1,.035,1);
+      a.sleeve.position.copy(w.clone().add(d.clone().multiplyScalar(L*.55)));a.sleeve.quaternion.copy(q);a.sleeve.scale.set(1,L*.45+.35,1);}
+  }
   function addArms(w){
-    const R={0:[[0,-.135,-.05],[.4,-.75,.5],'y'],1:[[0,-.135,-.05],[.35,-.8,.45],'y'],2:[[0,-.135,-.05],[.4,-.75,.5],'y'],3:[[0,-.025,.06],[.25,-.5,.8],'z'],4:[[0,0,.065],[.25,-.5,.8],'z']}[w];
-    gunG.add(arm(R[0],R[1],R[2]));
-    if(w===0)gunG.add(arm([-.005,-.075,-.42],[-.55,-.6,.6],'z'));
-    if(w===2)gunG.add(arm([-.005,-.075,-.55],[-.5,-.55,.65],'z'));
-    if(w===1)gunG.add(arm([-.05,-.15,-.06],[-.45,-.8,.4],'y'));
+    // eski kolları temizle
+    if(armsG){while(armsG.children.length)armsG.remove(armsG.children[0]);}ARMS=[];
+    const RE=[.34,-.62,.12],LE=[-.3,-.6,.02];
+    if(w===0||w===2){arm([0,-.11,-.04],RE,[0,0,0],gunG);arm([-.01,-.075,w===2?-.5:-.42],LE,[1.5,.2,0],gunG);}
+    if(w===1){arm([0,-.1,-.035],RE,[0,0,0],gunG);arm([-.035,-.12,-.03],[-.22,-.62,.08],[0,-.5,0],gunG);}
+    if(w===3)arm([0,-.028,.1],RE,[Math.PI/2,0,0],gunG);
+    if(w===4)arm([0,0,.075],RE,[Math.PI/2,0,0],gunG);
   }
   function bflySnd(dur){if(!ac())return;const t=AC.currentTime,n=Math.max(2,Math.round(dur/.32));for(let i=0;i<n;i++){const out=outNode(.3,0);noise(out,t+i*dur/n,.1,'bandpass',1200,3200,.6,1.6);clickSnd(t+i*dur/n+.08,4200,.25,.02);}}
   function buildGun(){
     while(gunG.children.length)gunG.remove(gunG.children[0]);
-    gunG.rotation.set(0,0,0);knifePivot=null;bfly=null;
+    gunG.rotation.set(0,0,0);knifePivot=null;bfly=null;GP={};
     if(S.w===4){
       const steel=new THREE.MeshPhongMaterial({color:0xdfe4ee,specular:0xffffff,shininess:90}),hA=new THREE.MeshPhongMaterial({color:0x7F77DD,shininess:40}),hB=new THREE.MeshPhongMaterial({color:0xED93B1,shininess:40}),pinM=new THREE.MeshLambertMaterial({color:0x26215C});
       const holder=new THREE.Group();holder.rotation.y=Math.PI/2;gunG.add(holder);
@@ -541,7 +566,7 @@ const FPS=(()=>{
       holder.add(safe);holder.add(bite);holder.add(blade);holder.add(pin);
       bfly={blade,bite,safe,holder};
       flash=new THREE.Object3D();gunG.add(flash);
-      addArms(4);gunG.position.set(.2,-.2,-.32);return;}
+      addArms(4);return;}
     if(S.w===3){
       const steel=new THREE.MeshStandardMaterial?new THREE.MeshPhongMaterial({color:0xdfe4ee,specular:0xffffff,shininess:90}):new THREE.MeshLambertMaterial({color:0xdfe4ee});
       const grip=new THREE.MeshLambertMaterial({color:0x7F77DD}),dark=new THREE.MeshLambertMaterial({color:0x26215C});
@@ -555,22 +580,39 @@ const FPS=(()=>{
       const handle=new THREE.Mesh(new THREE.BoxGeometry(.11,.032,.024),grip);handle.position.set(-.06,-.012,0);handle.rotation.z=-.15;parts.add(handle);
       const rg=new THREE.Mesh(new THREE.TorusGeometry(.022,.0065,8,18),steel);rg.position.set(ring.x,ring.y,0);parts.add(rg);
       flash=new THREE.Object3D();gunG.add(flash);
-      addArms(3);gunG.position.set(.2,-.2,-.32);return;}
-    const w=WEP[S.w],m=new THREE.MeshLambertMaterial({color:w.col}),dark=new THREE.MeshLambertMaterial({color:0x222631});
-    const len=S.w===1?.32:S.w===2?.95:.7;
-    const body=new THREE.Mesh(new THREE.BoxGeometry(.09,.11,len),m);body.position.set(0,0,-len/2);gunG.add(body);
-    const grip=new THREE.Mesh(new THREE.BoxGeometry(.07,.16,.08),dark);grip.position.set(0,-.11,-.05);gunG.add(grip);
-    if(S.w===2){const sc=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,.3,8),dark);sc.rotation.x=Math.PI/2;sc.position.set(0,.1,-.3);gunG.add(sc);}
-    if(S.w===0){const mg=new THREE.Mesh(new THREE.BoxGeometry(.06,.18,.08),dark);mg.position.set(0,-.13,-.3);gunG.add(mg);}
-    flash=new THREE.Mesh(new THREE.SphereGeometry(.06,6,6),new THREE.MeshBasicMaterial({color:0xffe27a}));flash.position.set(0,0,-len-.05);flash.visible=false;gunG.add(flash);
-    addArms(S.w);gunG.position.set(.22,-.2,-.25);
+      addArms(3);return;}
+    const w=WEP[S.w],m=mat(w.col,30),dark=mat(0x222631,20),metal=mat(0x8a90a0,60);GP={};
+    if(S.w===1){ // tabanca: sürgü + gövde + kabza + şarjör
+      const frame=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,.2),dark);frame.position.set(0,-.01,-.1);gunG.add(frame);
+      GP.slide=new THREE.Mesh(new THREE.BoxGeometry(.056,.045,.22),m);GP.slide.position.set(0,.035,-.11);gunG.add(GP.slide);
+      const sight=new THREE.Mesh(new THREE.BoxGeometry(.01,.012,.01),dark);sight.position.set(0,.064,-.21);gunG.add(sight);
+      const grip=new THREE.Mesh(new THREE.BoxGeometry(.048,.13,.065),dark);grip.position.set(0,-.085,-.02);grip.rotation.x=.18;gunG.add(grip);
+      GP.mag=new THREE.Mesh(new THREE.BoxGeometry(.04,.11,.05),metal);GP.mag.position.set(0,-.09,-.018);GP.mag.rotation.x=.18;gunG.add(GP.mag);GP.magY=-.09;
+      flash=new THREE.Mesh(new THREE.SphereGeometry(.04,6,6),new THREE.MeshBasicMaterial({color:0xffe27a}));flash.position.set(0,.035,-.25);
+    } else { // tüfek / keskin
+      const L=S.w===2?.9:.62;
+      const recv=new THREE.Mesh(new THREE.BoxGeometry(.07,.1,.32),m);recv.position.set(0,0,-.16);gunG.add(recv);
+      const hg=new THREE.Mesh(new THREE.BoxGeometry(.065,.075,L-.3),m);hg.position.set(0,-.008,-.32-(L-.3)/2);gunG.add(hg);
+      const bar=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.18,10),dark);bar.rotation.x=Math.PI/2;bar.position.set(0,.01,-L-.06);gunG.add(bar);
+      const stock=new THREE.Mesh(new THREE.BoxGeometry(.06,.09,.16),m);stock.position.set(0,-.02,.08);gunG.add(stock);
+      const grip=new THREE.Mesh(new THREE.BoxGeometry(.045,.12,.06),dark);grip.position.set(0,-.1,-.03);grip.rotation.x=.25;gunG.add(grip);
+      const rail=new THREE.Mesh(new THREE.BoxGeometry(.03,.015,.25),dark);rail.position.set(0,.058,-.18);gunG.add(rail);
+      if(S.w===0){GP.mag=new THREE.Mesh(new THREE.BoxGeometry(.045,.16,.07),dark);GP.mag.position.set(0,-.12,-.22);GP.mag.rotation.x=-.25;gunG.add(GP.mag);GP.magY=-.12;}
+      if(S.w===2){const sc=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.28,12),dark);sc.rotation.x=Math.PI/2;sc.position.set(0,.1,-.22);gunG.add(sc);
+        const lens=new THREE.Mesh(new THREE.CylinderGeometry(.036,.03,.04,12),dark);lens.rotation.x=Math.PI/2;lens.position.set(0,.1,-.38);gunG.add(lens);
+        GP.bolt=new THREE.Group();const bh=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.05,8),metal);bh.rotation.z=Math.PI/2;bh.position.set(.04,0,0);GP.bolt.add(bh);
+        const bk=new THREE.Mesh(new THREE.SphereGeometry(.014,10,8),metal);bk.position.set(.068,0,0);GP.bolt.add(bk);GP.bolt.position.set(0,.03,-.08);gunG.add(GP.bolt);}
+      flash=new THREE.Mesh(new THREE.SphereGeometry(.06,6,6),new THREE.MeshBasicMaterial({color:0xffe27a}));flash.position.set(0,.01,-L-.18);
+    }
+    flash.visible=false;gunG.add(flash);
+    addArms(S.w);
   }
   // ---- giriş ----
   const onKey=(e,down)=>{if(!active)return;K[e.code]=down;
     if(down){if(e.code==='Digit1')swap(0);if(e.code==='Digit2')swap(1);if(e.code==='Digit3')swap(2);if(e.code==='Digit4')swap(3);if(e.code==='Digit5')swap(4);if(e.code==='KeyY')inspect();if(e.code==='KeyR')reload();if(e.code==='KeyM')setMute(!muted);
       if(['Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code))e.preventDefault();}};
   addEventListener('keydown',e=>onKey(e,true));addEventListener('keyup',e=>onKey(e,false));
-  function swap(i){if(i===S.w)return;S.w=i;S.relT=0;S.cool=.35;S.zoom=false;S.insT=0;S.drawT=i===4?.6:0;buildGun();if(i===3)knifeDraw();else if(i===4)bflySnd(.6);else swapSnd();}
+  function swap(i){if(i===S.w)return;S.w=i;S.relT=0;S.cool=.35;S.zoom=false;S.insT=0;S.drawT=i>=3?.6:.45;buildGun();if(i===3)knifeDraw();else if(i===4)bflySnd(.6);else swapSnd();}
   function inspect(){if(S.relT>0||S.insT>0)return;S.zoom=false;S.insD=S.w===3?2.3:S.w===4?2.8:1.7;S.insT=S.insD;if(S.w===3)knifeSpin();if(S.w===4)bflySnd(S.insD);}
   function reload(){const w=WEP[S.w];if(w.melee||S.relT>0||S.ammo[S.w]>=w.mag)return;S.insT=0;S.relT=w.rel;S.zoom=false;reloadSnd(S.w);}
   // ---- ses motoru (sentez) ----
@@ -619,7 +661,7 @@ const FPS=(()=>{
   // ---- durum ----
   const hpMe=()=>Math.max(0,100-((P&&P.rd===S.rd&&P.mt===S.mt)?P.dmg:0));
   const hpPeer=()=>Math.max(0,100-S.dmg);
-  function spawn(){const s=SP[role];S.x=s.x;S.z=s.z;S.y=0;S.vy=0;S.yaw=s.yaw;S.pitch=0;S.ammo=[30,12,5,0,0];S.relT=0;S.insT=0;S.zoom=false;S.lastHp=100;}
+  function spawn(){const s=SP[role];S.x=s.x;S.z=s.z;S.y=0;S.vy=0;S.yaw=s.yaw;S.pitch=0;S.ammo=[30,12,5,0,0];S.relT=0;S.insT=0;S.drawT=.45;S.zoom=false;S.lastHp=100;}
   function newRound(rd,mt){S.rd=rd;S.mt=mt;S.dmg=0;S.ended=false;spawn();banner('Raund '+rd,1.2);}
   function banner(t,d){S.banner=t;S.bannerT=d;}
   function scores(){let a=0,b=0;for(const k in S.wins){if(S.wins[k]==='me')a++;else if(S.wins[k]==='peer')b++;}return[a,b];}
@@ -640,7 +682,7 @@ const FPS=(()=>{
     let end=camera.position.clone().add(dir.clone().multiplyScalar(60));
     if(hits.length){const h=hits[0];end=h.point;
       if((h.object===peerHead||h.object===peerBody)&&hpMe()>0){const d=Math.round(w.dmg*(h.object===peerHead?w.head:1));S.dmg=Math.min(100,S.dmg+d);S.hitT=.25;S.lastHit=h.object===peerHead?'head':'body';hitSnd(h.object===peerHead);}}
-    S.recoil=Math.min(.12,S.recoil+w.kick);S.pitch=Math.min(1.4,S.pitch+w.kick*.6);
+    S.recoil=Math.min(.12,S.recoil+w.kick);S.pitch=Math.min(1.4,S.pitch+w.kick*.6);kick(w);
     flash.visible=true;setTimeout(()=>{if(flash)flash.visible=false;},50);
     const start=new THREE.Vector3();flash.getWorldPosition(start);tracer.geometry.setFromPoints([start,end]);tracer.visible=true;setTimeout(()=>{tracer.visible=false;},45);
     gunSound(S.w,S.w===2?1:.85,0);
@@ -661,32 +703,71 @@ const FPS=(()=>{
         S.dmg=Math.min(100,S.dmg+d);S.hitT=.25;S.lastHit=h.object===peerHead||back?'head':'body';stabSnd();hitSnd(S.lastHit==='head');}
       else wallSnd();}
   }
+  // anahtar kare yardımcıları
+  const ease=x=>x<=0?0:x>=1?1:x*x*x*(x*(x*6-15)+10);
+  function kf(keys,p){ // keys: [[t,v0,v1,...],...] -> yumuşak geçişli değerler
+    if(p<=keys[0][0])return keys[0].slice(1);
+    for(let i=1;i<keys.length;i++){if(p<=keys[i][0]){const a=keys[i-1],b=keys[i],u=ease((p-a[0])/(b[0]-a[0]));return a.slice(1).map((v,j)=>v+(b[j+1]-v)*u);}}
+    return keys[keys.length-1].slice(1);}
+  const PI=Math.PI;
+  // [t, dx,dy,dz, rx,ry,rz, ek1, ek2]
+  const INS={
+    0:[[0,0,0,0,0,0,0],[.16,-.05,.05,.02,.05,-.75,.5],[.42,-.06,.05,.02,.08,-.8,.55],[.58,-.02,.07,0,-.3,.55,-.55],[.8,-.02,.07,0,-.32,.6,-.6],[1,0,0,0,0,0,0]],
+    1:[[0,0,0,0,0,0,0],[.18,-.04,.04,-.02,.05,-.9,.45],[.45,-.04,.04,-.02,.06,-.95,.5],[.6,0,.05,-.03,-.2,.7,-.5],[.82,0,.05,-.03,-.2,.75,-.55],[1,0,0,0,0,0,0]],
+    3:[[0,0,0,0,0,0,0,0],[.12,-.11,.08,-.16,.15,.75,.25,0],[.2,-.11,.08,-.16,.15,.75,.25,0],[.32,-.11,.09,-.16,.1,.75,.25,-PI*2],[.44,-.11,.09,-.16,.1,.75,.25,-PI*4],[.52,-.11,.08,-.16,.15,.75,.25,-PI*4],
+       [.64,-.09,.06,-.18,-.25,1.75,-.35,-PI*4],[.8,-.09,.06,-.18,-.28,1.8,-.4,-PI*4],[.92,-.02,.02,-.05,0,.2,0,-PI*4],[1,0,0,0,0,0,0,-PI*4]],
+    4:[[0,0,0,0,0,0,0,0,PI],[.08,-.1,.08,-.15,.1,.7,.2,0,PI],[.16,-.1,.08,-.15,.1,.7,.25,PI,PI],[.26,-.1,.09,-.15,.1,.7,.25,PI,PI*3],
+       [.34,-.1,.08,-.15,.1,.7,.2,PI*2,PI*3],[.42,-.1,.08,-.15,.1,.7,.25,PI*3,PI*3],[.52,-.1,.1,-.15,.2,.7,.3,PI*3,PI*5],[.6,-.1,.08,-.15,.1,.7,.2,PI*4,PI*5],
+       [.7,-.08,.06,-.18,-.3,1.75,-.35,PI*4,PI*5],[.84,-.08,.06,-.18,-.32,1.8,-.4,PI*4,PI*5],[.94,-.02,.02,-.05,0,.2,0,PI*4,PI*5],[1,0,0,0,0,0,0,PI*4,PI*5]]
+  };
+  INS[2]=INS[0];
+  const SLASH=[[0,0,0,0,0,0,0],[.25,.05,.07,.02,.35,-.35,.7],[.62,-.15,-.07,-.12,-.55,.85,-.7],[1,0,0,0,0,0,0]];
+  const STAB=[[0,0,0,0,0,0,0],[.35,.02,.03,.1,.25,0,.1],[.6,-.01,-.02,-.24,-.35,0,0],[1,0,0,0,0,0,0]];
+  const RELOAD={0:[[0,0,0,0,0,0,0],[.15,-.02,-.03,0,.1,.18,.4],[.85,-.02,-.03,0,.1,.18,.4],[1,0,0,0,0,0,0]],
+    1:[[0,0,0,0,0,0,0],[.15,0,-.01,0,.22,-.25,.18],[.85,0,-.01,0,.22,-.25,.18],[1,0,0,0,0,0,0]],
+    2:[[0,0,0,0,0,0,0],[.15,-.02,-.02,0,.06,.12,.3],[.85,-.02,-.02,0,.06,.12,.3],[1,0,0,0,0,0,0]]};
+  const V={kz:0,kv:0,kr:0,krv:0,swx:0,swy:0,bob:0,lastYaw:0,lastPitch:0};
   function animGun(dt){
-    if(S.insT>0)S.insT=Math.max(0,S.insT-dt);if(S.swT>0)S.swT=Math.max(0,S.swT-dt);
-    const sm=x=>x<=0?0:x>=1?1:x*x*(3-2*x);
-    let rx=0,ry=0,rz=0,px,py,pz,spin=0;
-    if(S.drawT>0)S.drawT=Math.max(0,S.drawT-dt);
-    if(S.w>=3){px=.17;py=-.17-S.recoil*.4;pz=-.36;rx=.1;ry=.55;
-      if(S.insT>0){const p=1-S.insT/S.insD,inW=sm(p<.15?p/.15:p>.85?(1-p)/.15:1);
-        px+=(.05-px)*inW;py+=(-.09-py)*inW;pz+=(-.55-pz)*inW;ry+=.65*inW;rx+=-.1*inW;
-        if(S.w===3&&p>.12&&p<.55){const q=(p-.12)/.43;spin=-(q<.5?2*q*q:1-Math.pow(-2*q+2,2)/2)*Math.PI*4;}
-        if(S.w===3&&p>=.55&&p<.85){const q=(p-.55)/.3;ry+=-Math.sin(q*Math.PI)*1.7;rz+=Math.sin(q*Math.PI)*.35;}}
-      if(S.swT>0){const d=S.heavyT?.45:.28,p=1-S.swT/d,k=Math.sin(p*Math.PI);
-        if(S.heavyT){pz+=-.2*k;py+=.04*k;rx+=-.5*k;}else{rx+=.5*k;ry+=-1.0*k;px+=-.14*k;py+=.03*k;}}
-    } else {const B=[[.16,-.1,-.34],[.11,-.12,-.36],[.16,-.1,-.34]][S.w];px=B[0];py=B[1]-(S.relT>0?.12:0)-S.recoil*.4;pz=B[2];
-      if(S.insT>0){const p=1-S.insT/S.insD,k=sm(p<.2?p/.2:p>.8?(1-p)/.2:1),w=Math.sin(Math.min(1,Math.max(0,(p-.2)/.6))*Math.PI);
-        px+=-.1*k;py+=.05*k;pz+=-.05*k;ry+=-.9*k+w*.5;rz+=.35*k;rx+=.15*w;}}
-    if(bfly){ // kelebek: bıçak ve ısırık sapı pim etrafında döner
-      let bA=0,hA=Math.PI;
-      if(S.drawT>0){const q=1-S.drawT/.6;bA=Math.PI*(1-sm(q))+0;hA=Math.PI+Math.PI*2*sm(q);}
-      else if(S.insT>0){const p=1-S.insT/S.insD;
-        if(p<.62){const q=sm(Math.min(1,Math.max(0,(p-.08)/.54)));bA=q*Math.PI*4;}
-        else if(p<.86){const q=sm((p-.62)/.24);bA=Math.PI*4+q*Math.PI;hA=Math.PI+q*Math.PI*2;}
-        else{const q=sm((p-.86)/.14);bA=Math.PI*5+q*Math.PI;hA=Math.PI*3;}}
-      bfly.blade.rotation.z=bA;bfly.bite.rotation.z=hA-Math.PI;bfly.safe.rotation.z=0;
-    }
-    gunG.position.set(px,py,pz);gunG.rotation.set(rx,ry,rz);if(knifePivot)knifePivot.rotation.z=spin;
+    if(S.insT>0)S.insT=Math.max(0,S.insT-dt);if(S.swT>0)S.swT=Math.max(0,S.swT-dt);if(S.drawT>0)S.drawT=Math.max(0,S.drawT-dt);
+    const knife=S.w>=3;
+    const B=knife?[.16,-.17,-.34,.1,.55,0]:[[.16,-.1,-.34,0,0,0],[.11,-.12,-.36,0,0,0],[.16,-.1,-.34,0,0,0]][S.w];
+    let [px,py,pz,rx,ry,rz]=B,ex=[];
+    // bakış gecikmesi (sway)
+    let dy=S.yaw-V.lastYaw;if(dy>PI)dy-=2*PI;if(dy<-PI)dy+=2*PI;const dp=S.pitch-V.lastPitch;V.lastYaw=S.yaw;V.lastPitch=S.pitch;
+    V.swx+=(Math.max(-.06,Math.min(.06,dy*.6))-V.swx)*Math.min(1,dt*10);V.swy+=(Math.max(-.05,Math.min(.05,dp*.6))-V.swy)*Math.min(1,dt*10);
+    px+=V.swx*.5;py-=V.swy*.4;ry+=V.swx*1.2;rx+=V.swy*1.2;
+    // yürüme sallantısı + nefes
+    const mv=S.ground&&((K.KeyW||K.KeyA||K.KeyS||K.KeyD)||Math.hypot(S.jx,S.jy)>.3);
+    V.bob+=dt*(mv?((K.ShiftLeft||K.ShiftRight)?6:10):0);const bw=mv?1:0;
+    px+=Math.sin(V.bob)*.012*bw;py+=-Math.abs(Math.cos(V.bob))*.014*bw+Math.sin(performance.now()/650)*.0025;rz+=Math.sin(V.bob)*.025*bw;
+    if(!S.ground){py+=Math.max(-.03,Math.min(.03,-S.vy*.004));}
+    // geri tepme yayı
+    const kk=180,kd=18;V.kv+=(-kk*V.kz-kd*V.kv)*dt;V.kz+=V.kv*dt;V.krv+=(-kk*V.kr-kd*V.krv)*dt;V.kr+=V.krv*dt;
+    pz+=V.kz;rx+=V.kr;
+    // çıkarma
+    if(S.drawT>0){const d=knife?.6:.45,u=1-ease(1-S.drawT/d);py-=.22*u;rx+=-.9*u;rz+=.4*u;}
+    // inceleme / doldurma / bıçak
+    let add=null;
+    if(S.insT>0)add=kf(INS[S.w],1-S.insT/S.insD);
+    else if(S.relT>0&&!knife)add=kf(RELOAD[S.w],1-S.relT/WEP[S.w].rel);
+    else if(knife&&S.swT>0)add=kf(S.heavyT?STAB:SLASH,1-S.swT/(S.heavyT?.45:.28));
+    if(add){px+=add[0];py+=add[1];pz+=add[2];rx+=add[3];ry+=add[4];rz+=add[5];ex=add.slice(6);}
+    gunG.position.set(px,py,pz);gunG.rotation.set(rx,ry,rz);
+    // parça animasyonları
+    if(knifePivot)knifePivot.rotation.z=(S.insT>0&&S.w===3)?ex[0]||0:0;
+    if(bfly){let bA=0,hA=PI;
+      if(S.drawT>0){const u=ease(1-S.drawT/.6);bA=PI*(1-u)+2*PI*u;hA=PI+2*PI*u;}
+      else if(S.insT>0&&ex.length>=2){bA=ex[0];hA=ex[1];}
+      bfly.blade.rotation.z=bA;bfly.bite.rotation.z=hA-PI;}
+    if(GP.mag){let my=0,vis=true;if(S.relT>0){const r=1-S.relT/WEP[S.w].rel;
+        if(r>.2&&r<.45)my=-.25*ease((r-.2)/.25);else if(r>=.45&&r<.55){vis=false;}else if(r>=.55&&r<.75)my=-.2*(1-ease((r-.55)/.2));}
+      GP.mag.position.y=GP.magY+my;GP.mag.visible=vis;}
+    if(GP.slide){let sz=0;if(S.cool>WEP[1].rate*.4)sz=.04;if(S.relT>0){const r=1-S.relT/WEP[1].rel;if(r>.78&&r<.92)sz=.05*Math.sin((r-.78)/.14*PI);}GP.slide.position.z=-.11+sz;}
+    if(GP.bolt){let bz=0,br=0;const c=S.cool;if(c>.25&&c<1.05){const q=1-(c-.25)/.8;br=Math.sin(Math.min(1,q*2)*PI/2)*(q<.85?1:(1-q)/.15)*-1.2;bz=Math.max(0,Math.sin(q*PI))*.06;}
+      GP.bolt.rotation.z=br;GP.bolt.position.z=-.08+bz;}
+    updateArms();
   }
+  function kick(w){V.kv+= w.melee?0:(S.w===2?1.6:S.w===1?.9:.55);V.krv+= w.melee?0:(S.w===2?-6:S.w===1?-4.5:-2.4);}
   function swingSnd(vol,pan){if(!ac())return;const t=AC.currentTime,out=outNode(vol,pan);noise(out,t,.18,'bandpass',600,3200,.8,1.2);}
   function stabSnd(){if(!ac())return;const t=AC.currentTime,out=outNode(.7,0);noise(out,t,.08,'lowpass',1400,300,1);tone(out,t,.1,'sine',180,70,.8);}
   function wallSnd(){if(!ac())return;const t=AC.currentTime,out=outNode(.5,0);tone(out,t,.12,'triangle',2400,1800,.35);noise(out,t,.05,'highpass',3000,0,.5);}
@@ -725,7 +806,7 @@ const FPS=(()=>{
     camera.position.set(S.x,S.y+(alive?1.6:.4),S.z);
     camera.rotation.set(S.pitch,S.yaw,alive?0:.6,'YXZ');
     const fov=S.zoom&&WEP[S.w].scope?22:75;if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}
-    gunG.visible=!(S.zoom&&WEP[S.w].scope)&&alive;
+    gunG.visible=!(S.zoom&&WEP[S.w].scope)&&alive;if(armsG)armsG.visible=gunG.visible;
     animGun(dt);
     // rakip
     if(P&&P.mt===S.mt){peerG.visible=true;P.rx+=(P.x-P.rx)*.35;P.rz+=(P.z-P.rz)*.35;P.ry+=(P.y-P.ry)*.35;
