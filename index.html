@@ -42,7 +42,8 @@ button:disabled{opacity:.3;cursor:not-allowed}
 .skin{display:grid;justify-items:center;gap:2px;padding:6px 2px;background:#2d2768;font-size:12px;font-weight:400}
 .skin canvas{width:48px;height:43px}
 .themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-.theme{font-size:14px}
+.theme{font-size:13px;min-height:90px;background-size:cover;background-position:center 70%;color:#fff;display:flex;align-items:flex-start;justify-content:flex-start;padding:6px}
+.theme span{background:rgba(38,33,92,.7);padding:2px 10px;border-radius:999px}
 summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:32px}
 @media(max-width:520px){.skins{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:520px){.lvls{grid-template-columns:repeat(6,minmax(0,1fr))}}
@@ -285,7 +286,7 @@ function computeSwitches(lv,st,bodies){
 
 
 // ===== ARAYÜZ, ÇİZİM, AĞ =====
-const cv=document.getElementById('cv'),cx=cv.getContext('2d');
+const cv=document.getElementById('cv'),cx=cv.getContext('2d');window.__cx=cx;
 const $=id=>document.getElementById(id);
 const GC=[['#7F77DD','#ED93B1'],['#534AB7','#AFA9EC'],['#D4537E','#378ADD'],['#E24B4A','#378ADD']];
 const THEMES=[
@@ -451,7 +452,7 @@ function draw(){
   const th=THEMES[myTheme]||THEMES[0],t=tick/60;
   const camX=clamp(me.x+PW/2-W/2,0,Math.max(0,lv.W*T-W));
   const bg=cx.createLinearGradient(0,0,0,Hh);bg.addColorStop(0,th.bg[0]);bg.addColorStop(1,th.bg[1]);cx.fillStyle=bg;cx.fillRect(0,0,W,Hh);
-  drawDecor(th,camX,t);if(cur.g===0){cx.fillStyle='#ffffff10';cx.fillRect(0,0,W,8*T);cx.fillStyle='#00000025';cx.fillRect(0,12*T,W,8*T);}
+  drawDecor(th,camX,t,cx);if(cur.g===0){cx.fillStyle='#ffffff10';cx.fillRect(0,0,W,8*T);cx.fillStyle='#00000025';cx.fillRect(0,12*T,W,8*T);}
   cx.save();cx.translate(-Math.round(camX),0);
   const x0=Math.floor(camX/T),x1=Math.min(lv.W-1,x0+33);
   for(let y=0;y<H;y++)for(let x=x0;x<=x1;x++)drawTile(lv.grid[y][x],x,y,th,t);
@@ -533,7 +534,7 @@ function drawSkin(c,k,f,t){
   }
 }
 function rr(c,x,y,w,h,r){c.beginPath();if(c.roundRect)c.roundRect(x,y,w,h,r);else c.rect(x,y,w,h);}
-function drawDecor(th,camX,t){
+function drawDecor(th,camX,t,cx=window.__cx){
   const p=camX*0.4,W=960;
   if(th.decor==='cave'){
     cx.fillStyle='#534AB7';for(let i=-1;i<6;i++){const bx=i*200-(p%200);cx.beginPath();cx.moveTo(bx,0);cx.lineTo(bx+36,0);cx.lineTo(bx+18,40);cx.closePath();cx.moveTo(bx+90,0);cx.lineTo(bx+116,0);cx.lineTo(bx+103,26);cx.closePath();cx.fill();}
@@ -565,14 +566,26 @@ function drawChar(p,role,name,th,t,skin){
   if(p.ex){cx.fillStyle=col;cx.fillText('✓',X,inv?ny+14:ny-14);}
 }
 // ---------- görünüm seçiciler ----------
+const prevCache={};
+function themePreview(i){
+  if(prevCache[i])return prevCache[i];
+  const th=THEMES[i],c=document.createElement('canvas');c.width=480;c.height=200;const g=c.getContext('2d');
+  const bg=g.createLinearGradient(0,0,0,200);bg.addColorStop(0,th.bg[0]);bg.addColorStop(1,th.bg[1]);g.fillStyle=bg;g.fillRect(0,0,480,200);
+  g.save();g.scale(0.5,0.5);drawDecor(th,0,0.3,g);g.restore();
+  for(let x=0;x<16;x++)for(let y=0;y<2;y++){g.fillStyle=(x+y)%2?th.tile:th.tile2;g.fillRect(x*30,150+y*30,30,30);}
+  g.fillStyle=th.edge;g.fillRect(0,150,480,3);
+  g.save();g.translate(200,150);g.scale(1.6,1.6);drawSkin(g,mySkin,1,0);g.restore();
+  g.save();g.translate(270,150);g.scale(1.6,1.6);drawSkin(g,mySkin===1?0:1,-1,0);g.restore();
+  return prevCache[i]=c.toDataURL();
+}
 function renderPickers(){
   document.querySelectorAll('.skins').forEach(box=>{
     box.innerHTML=SKINS.map((s,i)=>`<button class="skin${i===mySkin?' sel':''}" data-k="${i}" aria-label="${s.name}"><canvas width="56" height="50"></canvas><span>${s.name}</span></button>`).join('');
     box.querySelectorAll('.skin').forEach(b=>{const k=+b.dataset.k,c=b.querySelector('canvas').getContext('2d');c.translate(28,44);drawSkin(c,k,1,0);
-      b.onclick=()=>{mySkin=k;save('cl_skin',k);renderPickers();};});
+      b.onclick=()=>{mySkin=k;save('cl_skin',k);for(const q in prevCache)delete prevCache[q];renderPickers();};});
   });
   document.querySelectorAll('.themes').forEach(box=>{
-    box.innerHTML=THEMES.map((th,i)=>`<button class="theme${i===myTheme?' sel':''}" data-t="${i}" style="background:linear-gradient(${th.bg[0]},${th.bg[1]});color:${th.ink}">${th.name}</button>`).join('');
+    box.innerHTML=THEMES.map((th,i)=>`<button class="theme${i===myTheme?' sel':''}" data-t="${i}" style="background-image:linear-gradient(rgba(38,33,92,.35),rgba(38,33,92,.35)),url(${themePreview(i)})"><span>${th.name}</span></button>`).join('');
     box.querySelectorAll('.theme').forEach(b=>b.onclick=()=>{myTheme=+b.dataset.t;save('cl_theme',myTheme);renderPickers();});
   });
 }
