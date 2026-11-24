@@ -105,6 +105,7 @@ button.big:active{transform:translateY(3px);box-shadow:0 3px 0 #3C3489}
 .flock{pointer-events:auto;position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);display:grid;gap:6px;font-size:18px;padding:14px 22px;background:rgba(255,255,255,.88);border-radius:16px;max-width:90%}
 .flock small{font-size:12px;font-weight:400;color:var(--muted)}
 .flock[hidden],.frem[hidden]{display:none}
+.fmute{pointer-events:auto;position:absolute;right:10px;bottom:54px;min-height:36px;min-width:36px;padding:0;border-radius:10px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);font-size:16px;text-shadow:none}
 .frem{pointer-events:auto;position:absolute;left:50%;top:44%;transform:translateX(-50%);min-width:180px}
 
 body{touch-action:manipulation;-webkit-text-size-adjust:100%}
@@ -150,8 +151,9 @@ body{touch-action:manipulation;-webkit-text-size-adjust:100%}
       <div class="fhp"><span>Can</span><b>100</b><i></i></div>
       <div class="fammo"><span></span><b></b></div>
       <div class="fban" hidden></div>
-      <button class="flock" hidden>Oynamak için tıkla<small>WASD hareket · Fare nişan · Tık ateş · Sağ tık dürbün · R doldur · 1 2 3 silah · Space zıpla · Shift yavaş yürü · Esc imleç</small></button>
+      <button class="flock" hidden>Oynamak için tıkla<small>WASD hareket · Fare nişan · Tık ateş · Sağ tık dürbün · R doldur · 1 2 3 silah · Space zıpla · Shift sessiz yürü · M ses · Esc imleç</small></button>
       <button class="frem primary" hidden>Rövanş</button>
+      <button class="fmute" id="fmute" aria-label="Sesi kapat">🔊</button>
       <div class="ftouch"><div class="fjoy" id="fjoy"><i id="fknob"></i></div><div class="flook" id="flook"></div>
         <div class="fbtns"><button id="fbW" aria-label="Silah değiştir">⇄</button><button id="fbR" aria-label="Doldur">R</button><button id="fbS" aria-label="Dürbün">◎</button><button id="fbJ" aria-label="Zıpla">▲</button><button id="fbF" class="fire" aria-label="Ateş">Ateş</button></div></div>
     </div>
@@ -445,7 +447,7 @@ const FPS=(()=>{
   ];
   const S={x:0,y:0,z:0,vy:0,ground:true,yaw:0,pitch:0,w:0,ammo:[30,12,5],cool:0,relT:0,recoil:0,zoom:false,
     rd:1,mt:1,dmg:0,jx:0,jy:0,tj:false,touch:false,sn:0,wins:{},ended:false,endT:0,banner:'',bannerT:0,hitT:0,hurtT:0,lastHp:100,firing:false,locked:false,matchOver:false};
-  let P=null,role=0,peerName='Rakip',peerSkin=1,mySkin=0,lastPeerSn=0,audio=null;
+  let P=null,role=0,peerName='Rakip',peerSkin=1,mySkin=0,lastPeerSn=0,stepT=0,pStepT=0,pLast=null;
   const K={};
   const SP=[{x:-16,z:-16,yaw:-Math.PI*0.75},{x:16,z:16,yaw:Math.PI*0.25}];
   // harita: [x,z,w,d,h,renk] — merkeze göre simetrik
@@ -509,12 +511,46 @@ const FPS=(()=>{
   }
   // ---- giriş ----
   const onKey=(e,down)=>{if(!active)return;K[e.code]=down;
-    if(down){if(e.code==='Digit1')swap(0);if(e.code==='Digit2')swap(1);if(e.code==='Digit3')swap(2);if(e.code==='KeyR')reload();
+    if(down){if(e.code==='Digit1')swap(0);if(e.code==='Digit2')swap(1);if(e.code==='Digit3')swap(2);if(e.code==='KeyR')reload();if(e.code==='KeyM')setMute(!muted);
       if(['Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code))e.preventDefault();}};
   addEventListener('keydown',e=>onKey(e,true));addEventListener('keyup',e=>onKey(e,false));
-  function swap(i){if(i===S.w)return;S.w=i;S.relT=0;S.cool=.35;S.zoom=false;buildGun();}
-  function reload(){const w=WEP[S.w];if(S.relT>0||S.ammo[S.w]>=w.mag)return;S.relT=w.rel;S.zoom=false;}
-  function beep(f,d,type,vol){try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.type=type||'square';o.frequency.value=f;g.gain.value=vol||.05;g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+d);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d);}catch(e){}}
+  function swap(i){if(i===S.w)return;S.w=i;S.relT=0;S.cool=.35;S.zoom=false;buildGun();swapSnd();}
+  function reload(){const w=WEP[S.w];if(S.relT>0||S.ammo[S.w]>=w.mag)return;S.relT=w.rel;S.zoom=false;reloadSnd(S.w);}
+  // ---- ses motoru (sentez) ----
+  let AC=null,NB=null,MST=null,muted=false;
+  try{muted=localStorage.getItem('cl_mute')==='1';}catch(e){}
+  function ac(){try{if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();MST=AC.createGain();MST.gain.value=muted?0:.7;MST.connect(AC.destination);
+      const n=AC.sampleRate*1.2;NB=AC.createBuffer(1,n,AC.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;}
+    if(AC.state==='suspended')AC.resume();return AC;}catch(e){return null;}}
+  function outNode(vol,pan){const a=AC,g=a.createGain();g.gain.value=vol;if(a.createStereoPanner&&pan){const p=a.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,pan));g.connect(p);p.connect(MST);}else g.connect(MST);return g;}
+  function noise(out,t,dur,type,f0,f1,lvl,q){const a=AC,n=a.createBufferSource();n.buffer=NB;const fl=a.createBiquadFilter();fl.type=type;fl.Q.value=q||.7;
+    fl.frequency.setValueAtTime(f0,t);if(f1)fl.frequency.exponentialRampToValueAtTime(f1,t+dur);const g=a.createGain();g.gain.setValueAtTime(lvl,t);g.gain.exponentialRampToValueAtTime(.0008,t+dur);
+    n.connect(fl);fl.connect(g);g.connect(out);n.start(t,Math.random()*.6);n.stop(t+dur+.03);return g;}
+  function tone(out,t,dur,wave,f0,f1,lvl){const a=AC,o=a.createOscillator();o.type=wave;o.frequency.setValueAtTime(f0,t);if(f1)o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+    const g=a.createGain();g.gain.setValueAtTime(lvl,t);g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(g);g.connect(out);o.start(t);o.stop(t+dur+.03);}
+  const GUN=[
+    {crack:[.13,'lowpass',5200,600,1.1],body:[.09,'sine',150,45,1],tail:[.22,'bandpass',900,200,.25]},
+    {crack:[.09,'highpass',1400,0,.9],body:[.06,'triangle',260,90,.8],tail:[.14,'bandpass',1500,400,.18]},
+    {crack:[.18,'lowpass',3800,300,1.3],body:[.4,'sine',95,28,1.3],tail:[.9,'lowpass',700,120,.45],echo:true}
+  ];
+  function gunSound(w,vol,pan){if(!ac())return;const t=AC.currentTime,out=outNode(vol,pan),c=GUN[w];
+    noise(out,t,c.crack[0],c.crack[1],c.crack[2],c.crack[3]||null,c.crack[4]);
+    tone(out,t,c.body[0],c.body[1],c.body[2],c.body[3],c.body[4]);
+    const tl=noise(out,t+.01,c.tail[0],c.tail[1],c.tail[2],c.tail[3],c.tail[4]);
+    if(c.echo){const d=AC.createDelay(1);d.delayTime.value=.23;const fb=AC.createGain();fb.gain.value=.32;tl.connect(d);d.connect(fb);fb.connect(d);d.connect(out);setTimeout(()=>{try{d.disconnect();fb.disconnect();}catch(e){}},2500);}}
+  function clickSnd(t,f,lvl,dur){if(!AC)return;const out=outNode(lvl,0);noise(out,t,dur||.03,'highpass',f,0,1,1.5);tone(out,t,.02,'square',f/3,f/5,.25);}
+  function reloadSnd(w){if(!ac())return;const t=AC.currentTime,r=WEP[w].rel;
+    clickSnd(t+.05,2600,.35,.04);clickSnd(t+r*.45,1800,.45,.05);clickSnd(t+r*.5,3000,.3,.03);
+    if(w===2){clickSnd(t+r*.8,1400,.45,.06);clickSnd(t+r*.88,2400,.45,.05);}else{clickSnd(t+r*.82,2200,.4,.05);clickSnd(t+r*.86,3200,.35,.03);}}
+  function dryFire(){if(!ac())return;clickSnd(AC.currentTime,3500,.35,.025);}
+  function hitSnd(head){if(!ac())return;const t=AC.currentTime,out=outNode(.5,0);
+    if(head){tone(out,t,.12,'sine',1900,1900,.5);tone(out,t+.07,.18,'sine',2500,2500,.45);}else tone(out,t,.09,'triangle',1500,1100,.45);}
+  function hurtSnd(){if(!ac())return;const t=AC.currentTime,out=outNode(.6,0);tone(out,t,.18,'sine',140,50,.9);noise(out,t,.12,'lowpass',900,200,.5);}
+  function stepSnd(vol,pan){if(!ac())return;const t=AC.currentTime,out=outNode(vol,pan);noise(out,t,.07,'lowpass',520,160,.9);tone(out,t,.05,'sine',90,60,.4);}
+  function swapSnd(){if(!ac())return;clickSnd(AC.currentTime,2000,.3,.04);clickSnd(AC.currentTime+.12,2800,.25,.03);}
+  function spatial(){if(!P)return{vol:.6,pan:0,dist:20};const dx=P.x-S.x,dz=P.z-S.z,dist=Math.hypot(dx,dz)||1;
+    const rx=Math.cos(S.yaw),rz=-Math.sin(S.yaw);return{vol:Math.max(.12,1-dist/55),pan:(dx*rx+dz*rz)/dist*.85,dist};}
+  function setMute(m){muted=m;try{localStorage.setItem('cl_mute',m?'1':'0');}catch(e){}if(MST)MST.gain.value=m?0:.7;const b=document.getElementById('fmute');if(b){b.textContent=m?'🔇':'🔊';b.setAttribute('aria-label',m?'Sesi aç':'Sesi kapat');}}
   // ---- çarpışma ----
   const R=.35,HT=1.75;
   function collide(axis){
@@ -534,7 +570,7 @@ const FPS=(()=>{
   const ray=()=>new THREE.Raycaster();
   function shoot(){
     const w=WEP[S.w];if(S.relT>0||S.cool>0)return;
-    if(S.ammo[S.w]<=0){reload();return;}
+    if(S.ammo[S.w]<=0){dryFire();reload();return;}
     S.ammo[S.w]--;S.cool=w.rate;S.sn++;
     const moving=(K.KeyW||K.KeyA||K.KeyS||K.KeyD)||Math.hypot(S.jx,S.jy)>.3||!S.ground;
     let sp=w.spread+(moving?w.move:0)+S.recoil*.6;if(w.scope&&S.zoom)sp=moving?.03:0;
@@ -545,18 +581,18 @@ const FPS=(()=>{
     const hits=rc.intersectObjects(targets,false);
     let end=camera.position.clone().add(dir.clone().multiplyScalar(60));
     if(hits.length){const h=hits[0];end=h.point;
-      if((h.object===peerHead||h.object===peerBody)&&hpMe()>0){const d=Math.round(w.dmg*(h.object===peerHead?w.head:1));S.dmg=Math.min(100,S.dmg+d);S.hitT=.25;S.lastHit=h.object===peerHead?'head':'body';beep(h.object===peerHead?1400:900,.08,'triangle',.06);}}
+      if((h.object===peerHead||h.object===peerBody)&&hpMe()>0){const d=Math.round(w.dmg*(h.object===peerHead?w.head:1));S.dmg=Math.min(100,S.dmg+d);S.hitT=.25;S.lastHit=h.object===peerHead?'head':'body';hitSnd(h.object===peerHead);}}
     S.recoil=Math.min(.12,S.recoil+w.kick);S.pitch=Math.min(1.4,S.pitch+w.kick*.6);
     flash.visible=true;setTimeout(()=>{if(flash)flash.visible=false;},50);
     const start=new THREE.Vector3();flash.getWorldPosition(start);tracer.geometry.setFromPoints([start,end]);tracer.visible=true;setTimeout(()=>{tracer.visible=false;},45);
-    beep(S.w===2?90:S.w===1?220:160,.09,'sawtooth',.045);
+    gunSound(S.w,S.w===2?1:.85,0);
     if(S.ammo[S.w]===0)reload();
   }
   // ---- döngü ----
   function tick(dt){
     if(!ready||!active)return;
     const myHp=hpMe(),peerHp=hpPeer(),alive=myHp>0;
-    if(myHp<S.lastHp){S.hurtT=.35;beep(120,.15,'square',.05);}S.lastHp=myHp;
+    if(myHp<S.lastHp){S.hurtT=.35;hurtSnd();}S.lastHp=myHp;
     // raund sonu
     if(P&&!S.ended&&!S.matchOver&&(myHp<=0||peerHp<=0)){S.ended=true;S.endT=3;
       S.wins[S.mt+':'+S.rd]=myHp<=0&&peerHp<=0?'draw':myHp<=0?'peer':'me';
@@ -577,6 +613,8 @@ const FPS=(()=>{
       S.x+=mx*sp*dt;collide('x');S.z+=mz*sp*dt;collide('z');
       if((K.Space||S.tj)&&S.ground){S.vy=7;S.ground=false;}S.tj=false;
     }
+    {const mv=alive&&S.ground&&((K.KeyW||K.KeyA||K.KeyS||K.KeyD)||Math.hypot(S.jx,S.jy)>.3)&&!(K.ShiftLeft||K.ShiftRight);
+     if(mv){stepT-=dt;if(stepT<=0){stepT=.36;stepSnd(.22,0);}}else stepT=.05;}
     S.vy-=20*dt;S.y+=S.vy*dt;const fl=floorAt();if(S.y<=fl){S.y=fl;S.vy=0;S.ground=true;}else S.ground=false;
     if(S.firing&&alive&&!S.ended&&(S.locked||S.touch)){if(WEP[S.w].auto)shoot();else if(!S.fired){shoot();S.fired=true;}}
     // kamera
@@ -588,8 +626,9 @@ const FPS=(()=>{
     // rakip
     if(P&&P.mt===S.mt){peerG.visible=true;P.rx+=(P.x-P.rx)*.35;P.rz+=(P.z-P.rz)*.35;P.ry+=(P.y-P.ry)*.35;
       peerG.position.set(P.rx,P.ry,P.rz);peerG.rotation.y=P.yaw;
+      {if(pLast){const v=Math.hypot(P.x-pLast.x,P.z-pLast.z)/dt;if(v>4.2&&Math.abs(P.y-pLast.y)<.05){pStepT-=dt;if(pStepT<=0){pStepT=.36;const sp=spatial();if(sp.dist<28)stepSnd(sp.vol*.35,sp.pan);}}}pLast={x:P.x,y:P.y,z:P.z};}
       const dead=peerHp<=0&&P.rd===S.rd;peerG.rotation.z=dead?Math.PI/2:0;if(dead)peerG.position.y=P.ry+.35;
-      if(P.sn!==lastPeerSn){if(P.sn>lastPeerSn){peerFlash.visible=true;setTimeout(()=>{peerFlash.visible=false;},60);beep(140,.07,'sawtooth',.025);}lastPeerSn=P.sn;}
+      if(P.sn!==lastPeerSn){if(P.sn>lastPeerSn){peerFlash.visible=true;setTimeout(()=>{peerFlash.visible=false;},60);const sp=spatial();gunSound(Math.max(0,Math.min(2,P.w|0)),sp.vol*.8,sp.pan);}lastPeerSn=P.sn;}
       if(P.rd>S.rd&&P.mt===S.mt&&!S.matchOver)newRound(P.rd,S.mt);
     } else if(P&&P.mt>S.mt){startMatch(P.mt);} else peerG.visible=false;
     hud(myHp,peerHp);
@@ -630,11 +669,11 @@ const FPS=(()=>{
   function setPeer(o,name,skin){
     if(!o){P=null;return;}
     if(!P){P={rx:+o.fx||0,ry:+o.fy||0,rz:+o.fz||0};}
-    Object.assign(P,{x:+o.fx||0,y:+o.fy||0,z:+o.fz||0,yaw:+o.fyaw||0,dmg:Math.max(0,Math.min(100,+o.fd||0)),rd:+o.frd||1,mt:+o.fmt||1,sn:+o.fsn||0});
+    Object.assign(P,{x:+o.fx||0,y:+o.fy||0,z:+o.fz||0,yaw:+o.fyaw||0,dmg:Math.max(0,Math.min(100,+o.fd||0)),rd:+o.frd||1,mt:+o.fmt||1,sn:+o.fsn||0,w:+o.fw||0});
     peerName=name||peerName;
     if(skin!==peerSkin&&ready){peerSkin=skin;peerSprite.material.map=skinTexture(skin);peerSprite.material.needsUpdate=true;}
   }
-  function state(){return{fx:+S.x.toFixed(2),fy:+S.y.toFixed(2),fz:+S.z.toFixed(2),fyaw:+S.yaw.toFixed(3),fd:S.dmg,frd:S.rd,fmt:S.mt,fsn:S.sn};}
+  function state(){return{fx:+S.x.toFixed(2),fy:+S.y.toFixed(2),fz:+S.z.toFixed(2),fyaw:+S.yaw.toFixed(3),fd:S.dmg,frd:S.rd,fmt:S.mt,fsn:S.sn,fw:S.w};}
   function bindStage(){
     const cv=document.getElementById('cv3');
     cv.addEventListener('click',()=>{if(!active)return;try{const r=cv.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(e){}});
@@ -645,6 +684,7 @@ const FPS=(()=>{
     addEventListener('mouseup',e=>{if(e.button===0)S.firing=false;});
     cv.addEventListener('contextmenu',e=>e.preventDefault());
     document.getElementById('fhud').querySelector('.frem').addEventListener('click',()=>{startMatch(Math.max(S.mt,P?P.mt:0)+1);});
+    const mb=document.getElementById('fmute');mb.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();ac();setMute(!muted);});setMute(muted);
     // ---- dokunmatik (iPad) ----
     const coarse=matchMedia('(any-pointer:coarse)').matches;S.touch=coarse;
     const joy=document.getElementById('fjoy'),knob=document.getElementById('fknob'),look=document.getElementById('flook');
@@ -854,7 +894,7 @@ const HELP=[
  ['▼ (S) yerdeyken seni sabitler.','Ortağın sabitken havada ▲ basılı tut: ipe tırmanırsın.','Birbirinizin omzuna çıkabilirsiniz.'],
  ['Z basılı: ortağına çekilirsin. X basılı: ondan itilirsin.','Ortağının omzundayken X seni yukarı fırlatır.','Menzil bölümler ilerledikçe kısalır.'],
  ['Ateş lavda, Su suda yürür; yeşil çamur ikinizi de yakar.','Ateş kırmızı, Su mavi elmasları toplar.','Düğmeler üstünde durdukça, kollar bir kez çekilince kapı açar.','İkiniz de kendi kapınıza ulaşın: kırmızı Ateş’in, mavi Su’nun.'],
- ['WASD hareket, fare ile nişan, tıkla ateş et.','1 tüfek, 2 tabanca, 3 keskin nişancı; sağ tık dürbün, R doldur.','Kafadan vuruş çok daha fazla hasar verir. İlk 5 raundu alan kazanır.','Esc imleci serbest bırakır; tekrar tıklayınca oyuna dönersin.']
+ ['WASD hareket, fare ile nişan, tıkla ateş et.','1 tüfek, 2 tabanca, 3 keskin nişancı; sağ tık dürbün, R doldur.','Kafadan vuruş çok daha fazla hasar verir. İlk 5 raundu alan kazanır.','Rakibin silah ve ayak seslerini yönünden duyarsın; Shift ile sessiz yürü. M ses aç/kapa.','Esc imleci serbest bırakır; tekrar tıklayınca oyuna dönersin.']
 ];
 let lastHelpG=-1,helpTimer=0;
 function showHelp(g){
