@@ -44,10 +44,13 @@ button:disabled{opacity:.35;cursor:not-allowed}
 .games{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:10px}
 .gcard{display:grid;gap:2px;align-content:end;text-align:left;background-size:cover;background-position:center;padding:12px;min-height:112px;border-radius:14px;text-shadow:0 1px 3px rgba(0,0,0,.35)}
 .gcard{color:#fff}.gcard b{font-size:15px;line-height:1.2;font-weight:600}.gcard span{font-size:12px;color:#eef;font-weight:400}
-.gcard.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.gcard{position:relative;opacity:.6;transition:opacity .15s,transform .15s}.gcard:hover{opacity:.85}
+.gcard.sel{opacity:1;border:3px solid var(--accent);box-shadow:0 6px 18px rgba(127,119,221,.45);transform:translateY(-2px)}
+.chk{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;text-shadow:none}
 .lvls{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
 .lv{padding:0;min-height:38px;font-size:14px;border-radius:8px}
 .lv:disabled{background:transparent;opacity:.28}
+.lv.sel{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 @media(max-width:520px){.lvls{grid-template-columns:repeat(6,minmax(0,1fr))}}
 .skins{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
 .skin{display:grid;justify-items:center;gap:4px;padding:8px 2px 6px;font-size:12px;font-weight:400;color:var(--muted);border-radius:12px}
@@ -96,12 +99,12 @@ button.big:active{transform:translateY(3px);box-shadow:0 3px 0 #3C3489}
       <p id="lmsg"></p>
     </div></div>
     <div class="ov" id="menu" hidden><div class="card">
-      <h2>Ne oynayalım?</h2>
+      <div class="head"><button class="back" id="menuBack" aria-label="Geri" title="Geri"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><h2>Ne oynayalım?</h2></div>
       <div class="games" id="games"></div>
       <p id="gdesc"></p>
       <div class="lvls" id="lvls"></div>
-      <p>Biriniz bölüm seçince öbürünüzde de açılır.</p>
-      <button class="primary" id="closeMenu">Oyuna dön</button>
+      <button class="primary" id="playBtn">Oyna</button>
+      <p style="text-align:center;font-size:13px">Oyunu başlatan kim olursa olsun, ikinizde de aynı bölüm açılır.</p>
     </div></div>
     <div class="ov" id="msg" hidden><div class="card" style="text-align:center"><h2 id="mt"></h2><p id="mp"></p></div></div>
   </div>
@@ -413,8 +416,8 @@ async function peerRoom(code){
 
 
 // ---------- menü ----------
-let menuG=0;
-function showMenu(){$('menu').hidden=false;$('helpCard').hidden=true;renderMenu();renderPickers();}
+let menuG=0,menuL=0;
+function showMenu(){if(cur){menuG=cur.g;menuL=cur.l;}else{menuL=Math.max(0,(unlocked[menuG]||1)-1);}$('menu').hidden=false;$('helpCard').hidden=true;renderMenu();renderPickers();}
 const gameCache={};
 function gamePreview(g){
   const key=g+'_'+myTheme;if(gameCache[key])return gameCache[key];
@@ -432,13 +435,17 @@ function gamePreview(g){
   return gameCache[key]=c.toDataURL();
 }
 function renderMenu(){
-  $('games').innerHTML=GAMES.map((g,i)=>`<button class="gcard${i===menuG?' sel':''}" data-g="${i}" style="background-image:linear-gradient(180deg,rgba(43,52,69,0) 30%,rgba(43,52,69,.8) 100%),url(${gamePreview(i)})"><b>${g.name}</b><span>${g.roles[myRole]} olacaksın</span></button>`).join('');
+  const chk='<i class="chk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></i>';
+  $('games').innerHTML=GAMES.map((g,i)=>`<button class="gcard${i===menuG?' sel':''}" data-g="${i}" aria-pressed="${i===menuG}" style="background-image:linear-gradient(180deg,rgba(43,52,69,0) 30%,rgba(43,52,69,.8) 100%),url(${gamePreview(i)})">${i===menuG?chk:''}<b>${g.name}</b><span>${g.roles[myRole]} olacaksın</span></button>`).join('');
   $('gdesc').textContent=GAMES[menuG].desc;
-  const u=unlocked[menuG]||1;
-  $('lvls').innerHTML=Array.from({length:LEVELS},(_,i)=>`<button class="lv" data-l="${i}" ${i<u?'':'disabled'}>${i+1}</button>`).join('');
-  $('games').querySelectorAll('.gcard').forEach(b=>b.onclick=()=>{menuG=+b.dataset.g;renderMenu();});
-  $('lvls').querySelectorAll('.lv').forEach(b=>b.onclick=()=>{const n=Math.max(cur?cur.n:0,peerRaw?(+peerRaw.pn||0):0)+1;start(menuG,+b.dataset.l,n);});
+  const u=unlocked[menuG]||1;if(menuL>=u)menuL=u-1;
+  $('lvls').innerHTML=Array.from({length:LEVELS},(_,i)=>`<button class="lv${i===menuL?' sel':''}" data-l="${i}" ${i<u?'':'disabled'}>${i+1}</button>`).join('');
+  $('games').querySelectorAll('.gcard').forEach(b=>b.onclick=()=>{const g=+b.dataset.g;if(g!==menuG){menuG=g;menuL=Math.max(0,(unlocked[g]||1)-1);}renderMenu();});
+  $('lvls').querySelectorAll('.lv').forEach(b=>b.onclick=()=>{menuL=+b.dataset.l;renderMenu();});
+  $('playBtn').textContent=GAMES[menuG].name+' · Bölüm '+(menuL+1)+' oyna';
 }
+$('playBtn').onclick=()=>{const n=Math.max(cur?cur.n:0,peerRaw?(+peerRaw.pn||0):0)+1;start(menuG,menuL,n);};
+$('menuBack').onclick=()=>{if(cur){$('menu').hidden=true;}else toLobby();};
 $('menuBtn2').onclick=()=>{if(room)showMenu();};
 function toLobby(){
   netGen++;try{if(room&&typeof room.leave==='function')room.leave();}catch(e){}
@@ -452,7 +459,6 @@ $('homeBtn3').onclick=()=>{if(room)toLobby();};
 $('helpBtn').onclick=()=>{if(cur)showHelp(cur.g);};
 $('helpCard').onclick=()=>{$('helpCard').hidden=true;};
 addEventListener('keydown',e=>{if(e.code==='Escape'&&room){if($('menu').hidden)showMenu();else if(cur)$('menu').hidden=true;}});
-$('closeMenu').onclick=()=>{if(cur)$('menu').hidden=true;};
 
 function start(g,l,n){
   cur={g,l,n};lv=genLevel(g,l);
