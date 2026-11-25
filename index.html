@@ -66,7 +66,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
 .bar b{color:var(--ink);font-weight:500}
 .pill{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:#fff;border:1px solid var(--line)}
 .dot{width:8px;height:8px;border-radius:50%;background:#b4b9c6}.dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(93,202,165,.2)}
-.corner{position:absolute;top:10px;right:10px;display:flex;gap:6px}.corner[hidden]{display:none}
+.corner{position:absolute;top:10px;right:10px;display:flex;gap:6px}#cgear{display:none}.stage[data-mode="fps"] #cgear{display:flex}.corner[hidden]{display:none}
 .corner button{min-height:36px;min-width:36px;padding:0 10px;font-size:14px;background:rgba(255,255,255,.85);border-color:rgba(255,255,255,.9);color:var(--ink);display:flex;align-items:center;gap:6px;backdrop-filter:blur(4px)}
 .hcard{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:min(440px,86%);background:var(--panel);border:1px solid rgba(255,255,255,.9);border-radius:20px;padding:16px 20px;cursor:pointer;box-shadow:0 16px 40px rgba(40,70,110,.22)}
 .hcard[hidden]{display:none}.hcard b{font-size:16px;font-weight:600}.hcard ul{margin:10px 0;padding-left:18px;font-size:14px;line-height:1.6;color:var(--ink)}.hcard span{font-size:12px;color:var(--muted)}
@@ -229,7 +229,7 @@ body{touch-action:manipulation;-webkit-text-size-adjust:100%}
     <div class="tpad" id="tpad"><div class="tl"><button data-k="L" aria-label="Sol">◀</button><button data-k="R" aria-label="Sağ">▶</button></div><div class="tr"><button data-k="D" class="t-rope" aria-label="Sabitlen">▼</button><button data-k="Z" class="t-mag" aria-label="Çek">Çek</button><button data-k="X" class="t-mag" aria-label="İt">İt</button><button data-k="U" class="tbig" aria-label="Zıpla">▲</button></div></div>
     <div class="rot" id="rot">Daha rahat oynamak için tableti yan çevir</div>
     <button class="fsbtn" id="fsBtn" aria-label="Tam ekran" title="Tam ekran"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-    <div class="corner"><button id="homeBtn3" aria-label="Ana ekran" title="Ana ekran"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button><button id="helpBtn" aria-label="Kontroller" title="Kontroller">?</button><button id="menuBtn2" aria-label="Oyun menüsü"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menü</button></div>
+    <div class="corner"><button id="homeBtn3" aria-label="Ana ekran" title="Ana ekran"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></button><button id="cgear" aria-label="Ayarlar" title="Hassasiyet ayarları"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Ayarlar</button><button id="helpBtn" aria-label="Kontroller" title="Kontroller">?</button><button id="menuBtn2" aria-label="Oyun menüsü"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menü</button></div>
     <div class="hcard" id="helpCard" hidden><b id="hcTitle"></b><ul id="hcList"></ul><span>Kapatmak için dokun</span></div>
     <div class="splash" id="splash"><div class="stitle">Oge Macerası</div><button class="primary big" id="startBtn">Oyuna başla</button></div>
     <div class="ov" id="lobby" hidden><div class="card">
@@ -522,6 +522,7 @@ const FPS=(()=>{
   const K={};
   const SENS={m:1,sc:1,t:1,inv:false};
   try{Object.assign(SENS,JSON.parse(localStorage.getItem('cl_sens')||'{}'));}catch(e){}
+  let openSettingsRef=null;
   const saveSens=()=>{try{localStorage.setItem('cl_sens',JSON.stringify(SENS));}catch(e){}};
   const SP=[{x:0,z:33,yaw:0},{x:0,z:-33,yaw:Math.PI}];
   // harita: [x,z,w,d,h,renk] — merkeze göre simetrik
@@ -1082,6 +1083,7 @@ const FPS=(()=>{
     document.getElementById('sInv').addEventListener('change',e=>{SENS.inv=e.target.checked;saveSens();});
     document.getElementById('sReset').addEventListener('click',()=>{Object.assign(SENS,{m:1,sc:1,t:1,inv:false});saveSens();syncUI();});
     const openSet=()=>{syncUI();sp.hidden=false;S.firing=false;if(document.pointerLockElement)document.exitPointerLock();};
+    openSettingsRef=openSet;
     gb.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(sp.hidden)openSet();else sp.hidden=true;});
     document.getElementById('sClose').addEventListener('click',()=>{sp.hidden=true;});
     sp.addEventListener('pointerdown',e=>e.stopPropagation());
@@ -1108,7 +1110,7 @@ const FPS=(()=>{
     tb('fbY',()=>inspect());
     tb('fbS',()=>{if(WEP[S.w].melee){shoot(true);return;}if(WEP[S.w].scope&&S.relT<=0)S.zoom=!S.zoom;else{swap(2);S.zoom=true;}});
   }
-  return{start,stop,tick,render,setPeer,state,bindStage,get active(){return active;}};
+  return{openSettings(){if(active&&openSettingsRef)openSettingsRef();},start,stop,tick,render,setPeer,state,bindStage,get active(){return active;}};
 })();
 
 // ===== ARAYÜZ, ÇİZİM, AĞ =====
@@ -1267,6 +1269,7 @@ function renderMenu(){
 $('playBtn').onclick=()=>{const n=Math.max(cur?cur.n:0,peerRaw?(+peerRaw.pn||0):0)+1;start(menuG,menuL,n);};
 $('menuBack').onclick=()=>{if(cur){$('menu').hidden=true;}else toLobby();};
 $('menuBtn2').onclick=()=>{if(room)showMenu();};
+$('cgear').onclick=()=>FPS.openSettings();
 function toLobby(){
   netGen++;try{if(room&&typeof room.leave==='function')room.leave();}catch(e){}
   for(const p of peerObjs){try{p.destroy();}catch(e){}}peerObjs=[];
