@@ -134,6 +134,52 @@ body{touch-action:manipulation;-webkit-text-size-adjust:100%}
 .fbtns button{pointer-events:auto;width:56px;height:56px;min-height:0;padding:0;border-radius:50%;background:rgba(255,255,255,.4);border:2px solid rgba(255,255,255,.85);color:#fff;font-size:20px;text-shadow:0 1px 3px rgba(0,0,0,.5);touch-action:none}
 .fbtns .fire{grid-column:4;grid-row:1/3;width:84px;height:84px;background:rgba(226,75,74,.55);font-size:16px}
 @media (any-pointer:coarse){.fammo{bottom:auto;top:56px;right:16px}.fhp{bottom:auto;top:56px}}
+
+/* ---- TELEFON ---- */
+.phonerot{display:none}
+@media (any-pointer:coarse) and (max-height:540px),(any-pointer:coarse) and (max-width:600px){
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{position:fixed;inset:0}
+  .wrap{max-width:none;padding:0}
+  .box{position:fixed;inset:0;border-radius:0;padding:0;border:0;display:grid;place-items:center;background:linear-gradient(180deg,#bfe7ff,#e9f8e1);box-shadow:none}
+  .stage{width:min(100vw,160vh,160dvh);border-radius:0}
+  .bar{position:fixed;left:calc(8px + env(safe-area-inset-left));bottom:6px;margin:0;z-index:60;pointer-events:none;font-size:11px}
+  .bar .pill{padding:2px 8px}.bar b#where{display:none}
+  .fsbtn{display:none}
+  .ov{padding:8px calc(8px + env(safe-area-inset-right)) 8px calc(8px + env(safe-area-inset-left));align-items:start}
+  .card{gap:7px;padding:12px 14px;border-radius:16px;width:min(620px,100%);margin:auto}
+  .card h2{font-size:17px}.card p{font-size:12px}
+  .head .back{min-height:30px;min-width:30px}
+  input{min-height:34px;padding:6px 10px;font-size:16px}
+  label{font-size:11px;gap:3px}.lbl{font-size:11px;margin-bottom:-3px}
+  button{min-height:34px;padding:6px 10px;font-size:13px}
+  .seg button{min-height:30px}
+  .skins{grid-template-columns:repeat(10,minmax(0,1fr))!important;gap:4px}
+  .skin{padding:3px 0;border-radius:10px}.skin canvas{width:34px;height:31px}
+  button.primary{box-shadow:0 3px 0 #534AB7}
+  .games{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:5px}
+  .gcard{min-height:58px;padding:6px 7px;border-radius:10px}.gcard b{font-size:11px}.gcard span{display:none}.chk{width:18px;height:18px;top:4px;right:4px}
+  .lvls{grid-template-columns:repeat(15,minmax(0,1fr))!important;gap:3px}.lv{min-height:26px;font-size:11px;border-radius:6px}
+  .stitle{font-size:clamp(34px,10vh,64px)}button.big{min-height:44px;padding:8px 28px;font-size:17px}
+  .corner{top:6px;right:calc(6px + env(safe-area-inset-right))}.corner button{min-height:30px;min-width:30px;padding:0 8px;font-size:12px}
+  .tpad{padding:8px calc(10px + env(safe-area-inset-right)) 10px calc(10px + env(safe-area-inset-left))}
+  .tpad button{width:52px;height:52px;font-size:18px}.tpad button.tbig{width:64px;height:64px;font-size:22px}
+  .rot{display:none!important}
+  .fsc{font-size:12px;padding:2px 10px}.fphp i{width:80px}
+  .fhp{width:110px;left:calc(10px + env(safe-area-inset-left));top:40px!important}.fhp b{font-size:20px}
+  .fammo{top:40px!important;right:calc(10px + env(safe-area-inset-right))!important}.fammo b{font-size:18px}
+  .fban{font-size:15px;padding:6px 14px;top:22%}
+  .fbtns{right:calc(14px + env(safe-area-inset-right));bottom:14px;gap:7px}.fbtns button{width:44px;height:44px;font-size:16px}.fbtns .fire{width:64px;height:64px;font-size:13px}
+  .fjoy i,.fjoy::before{left:calc(62px + env(safe-area-inset-left));bottom:58px}.fjoy::before{width:100px;height:100px}.fjoy i{width:50px;height:50px}
+  .fmute{bottom:auto;top:40px;right:calc(90px + env(safe-area-inset-right));min-height:30px;min-width:30px;font-size:13px}
+  .hcard{width:min(420px,80%);padding:10px 14px}.hcard ul{font-size:12px;margin:6px 0}
+}
+@media (any-pointer:coarse) and (max-width:600px) and (orientation:portrait){
+  .phonerot{display:grid;position:fixed;inset:0;z-index:100;place-items:center;align-content:center;gap:14px;background:linear-gradient(180deg,#bfe7ff,#e9f8e1);color:#2b3445;text-align:center;padding:24px;font:600 18px Rubik,sans-serif}
+  .phonerot svg{animation:rotp 1.8s ease-in-out infinite}
+  .phonerot small{font-weight:400;font-size:13px;color:#667085;max-width:280px}
+}
+@keyframes rotp{0%,20%{transform:rotate(0)}50%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
 .touch{display:none;gap:8px;margin-top:12px;flex-wrap:wrap}
 .touch button{flex:1 1 60px;font-size:20px;min-height:58px;user-select:none;-webkit-user-select:none;touch-action:none}
 @media (pointer:coarse){.touch{display:flex}}
@@ -141,6 +187,7 @@ body{touch-action:manipulation;-webkit-text-size-adjust:100%}
 </style>
 </head>
 <body>
+<div class="phonerot"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#7F77DD" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Telefonu yan çevir<small>Oge Macerası yatay ekranda oynanıyor. İpucu: Safari'de Paylaş → Ana Ekrana Ekle ile tam ekran uygulama gibi açabilirsin.</small></div>
 <div class="wrap">
   <div class="box" id="box"><div class="stage" id="stage">
     <canvas id="cv" width="960" height="600"></canvas>
