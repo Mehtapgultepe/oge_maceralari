@@ -498,9 +498,95 @@ const FPS=(()=>{
     rd:1,mt:1,dmg:0,jx:0,jy:0,tj:false,touch:false,sn:0,wins:{},ended:false,endT:0,banner:'',bannerT:0,hitT:0,hurtT:0,lastHp:100,firing:false,locked:false,matchOver:false};
   let P=null,role=0,peerName='Rakip',peerSkin=1,mySkin=0,lastPeerSn=0,stepT=0,pStepT=0,pLast=null;
   const K={};
-  const SP=[{x:-16,z:-16,yaw:-Math.PI*0.75},{x:16,z:16,yaw:Math.PI*0.25}];
+  const SP=[{x:0,z:33,yaw:0},{x:0,z:-33,yaw:Math.PI}];
   // harita: [x,z,w,d,h,renk] — merkeze göre simetrik
-  const MAP=[[0,0,4,4,2.2,0xb98a5a],[-8,-3,2,6,1.2,0xc9a06e],[-12,6,6,2,2.6,0xcfd6e4],[-4,10,2,2,1.1,0xb98a5a],[-15,-8,2,2,1.1,0xb98a5a],[-6,-14,8,1,2.6,0xcfd6e4],[-17,12,3,3,1.6,0xa7c4e0],[-2,-7,2,2,1.1,0xe0a8c4]];
+  // ---- harita: 40x40 hücre, hücre 2 birim. Dust 2 tarzı yerleşim (uzun A, orta, B tünelleri), yeşil tema ----
+  const GN=40,CS=2;
+  function mapGrid(){
+    const g=[];for(let r=0;r<GN;r++)g.push(new Array(GN).fill('#'));
+    const carve=(c0,c1,r0,r1,ch)=>{for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)g[r][c]=ch||',';};
+    const put=(c,r,ch)=>{g[r][c]=ch;};
+    carve(12,27,33,38,'.');           // Kırmızı (T) spawn
+    carve(14,25,1,6,'.');             // Mavi (CT) spawn
+    carve(2,13,2,12,'.');             // A bölgesi
+    carve(26,37,2,12,'.');            // B bölgesi
+    carve(4,12,33,35);carve(2,4,13,35);          // Uzun A
+    put(4,24,'S');put(4,25,'S');put(2,24,'S');put(2,25,'S');     // uzun A kapıları (daralma)
+    carve(18,21,7,32);                // orta
+    put(18,14,'S');put(18,15,'S');put(21,14,'S');put(21,15,'S'); // orta çift kapı
+    carve(10,17,18,20);carve(9,11,13,20);        // kısa A (catwalk)
+    carve(28,32,33,35);carve(33,36,13,35);       // B tüneli
+    carve(22,25,9,10);                // ortadan B'ye
+    carve(22,32,26,27,'r');carve(33,36,18,28,'r'); // kapalı tünel bölümleri
+    for(let r=1;r<=4;r++){put(13,r,'#');put(26,r,'#');}  // spawn ile bölgeler arası çitler (alttan geçit kalır)
+    // siperler, ağaçlar
+    [[5,5,'C'],[6,5,'C'],[10,8,'c'],[3,10,'c'],[12,3,'T'],[7,10,'c'],
+     [30,6,'C'],[31,6,'C'],[35,9,'c'],[28,4,'c'],[36,3,'T'],[33,10,'c'],
+     [19,22,'C'],[20,11,'c'],[16,34,'c'],[13,37,'T'],[26,37,'T'],[23,35,'c'],
+     [15,2,'T'],[24,2,'T'],[3,16,'c'],[3,29,'C'],[35,31,'c'],[11,19,'c']].forEach(([c,r,ch])=>put(c,r,ch));
+    return g;}
+  const cx2w=c=>(c-(GN-1)/2)*CS,rz2w=r=>(r-(GN-1)/2)*CS;
+  function buildMap(){
+    const g=mapGrid();
+    // zemin dokusu: çim + toprak patikalar
+    const cv=document.createElement('canvas');cv.width=cv.height=1024;const q=cv.getContext('2d'),px=1024/GN;
+    q.fillStyle='#7cc464';q.fillRect(0,0,1024,1024);
+    for(let i=0;i<5000;i++){q.fillStyle=Math.random()<.5?'#86cf6c':'#6fb85a';q.fillRect(Math.random()*1024,Math.random()*1024,2,4);}
+    for(let r=0;r<GN;r++)for(let c=0;c<GN;c++){const ch=g[r][c];
+      if(ch===','||ch==='r'){q.fillStyle=ch==='r'?'#b89a6e':'#d8c08f';q.fillRect(c*px-1,r*px-1,px+2,px+2);}}
+    for(let i=0;i<1800;i++){const x=Math.random()*1024,y=Math.random()*1024,c=Math.floor(x/px),r=Math.floor(y/px);if(g[r]&&(g[r][c]===','||g[r][c]==='r')){q.fillStyle=Math.random()<.5?'#c9ad78':'#e3cf9f';q.fillRect(x,y,3,3);}}
+    const tex=new THREE.CanvasTexture(cv);tex.anisotropy=4;
+    const fl=new THREE.Mesh(new THREE.PlaneGeometry(GN*CS,GN*CS),new THREE.MeshLambertMaterial({map:tex}));fl.rotation.x=-Math.PI/2;scene.add(fl);rayTargets.push(fl);
+    const out=new THREE.Mesh(new THREE.PlaneGeometry(400,400),new THREE.MeshLambertMaterial({color:0x79c262}));out.rotation.x=-Math.PI/2;out.position.y=-.02;scene.add(out);
+    // duvarlar: satır satır birleştir
+    const HEDGE=mat(0x4f9a46),HEDGE2=mat(0x5fae52),STONE=mat(0xcfd3c8),MOSS=mat(0x8fb36a),WOOD=mat(0xb98a5a),WOOD2=mat(0x9c7348),ROOF=mat(0x8a6440);
+    const mkTex=(draw)=>{const c=document.createElement('canvas');c.width=c.height=128;draw(c.getContext('2d'));const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};
+    const leafTex=mkTex(k=>{k.fillStyle='#4a9443';k.fillRect(0,0,128,128);for(let i=0;i<420;i++){const s=3+Math.random()*7;k.fillStyle=['#3f8a3a','#5aa64f','#69b85c','#356f31','#7bc46a'][i%5];k.beginPath();k.ellipse(Math.random()*128,Math.random()*128,s,s*.6,Math.random()*3,0,7);k.fill();}});
+    const stoneTex=mkTex(k=>{k.fillStyle='#bfc4b8';k.fillRect(0,0,128,128);const rows=6;for(let r=0;r<rows;r++){const y=r*128/rows,off=r%2?32:0;for(let x=-32;x<128;x+=64){k.fillStyle=['#cfd3c8','#c4c9bd','#d8dbd1'][(r+x/64|0)%3+0>2?0:(r+x/64|0)%3];
+      k.fillRect(x+off+2,y+2,60,128/rows-4);}}k.fillStyle='rgba(120,160,90,.35)';for(let i=0;i<60;i++)k.fillRect(Math.random()*128,Math.random()*128,4+Math.random()*8,2+Math.random()*3);});
+    const leafM=new THREE.MeshLambertMaterial({map:leafTex}),stoneM=new THREE.MeshLambertMaterial({map:stoneTex});
+    const worldUV=(geo,cx,cy,cz)=>{const p=geo.attributes.position,n=geo.attributes.normal,uv=geo.attributes.uv;
+      for(let i=0;i<p.count;i++){const x=p.getX(i)+cx,y=p.getY(i)+cy,z=p.getZ(i)+cz,ax=Math.abs(n.getX(i)),ay=Math.abs(n.getY(i));
+        if(ax>.5)uv.setXY(i,z/2.5,y/2.5);else if(ay>.5)uv.setXY(i,x/2.5,z/2.5);else uv.setXY(i,x/2.5,y/2.5);}uv.needsUpdate=true;};
+    const addB=(x0,x1,z0,z1,y0,y1,m,top)=>{const w=x1-x0,d=z1-z0,h=y1-y0;const geo=new THREE.BoxGeometry(w,h,d);if(m===HEDGE||m===STONE){worldUV(geo,(x0+x1)/2,(y0+y1)/2,(z0+z1)/2);m=m===HEDGE?leafM:stoneM;}const me=new THREE.Mesh(geo,m);me.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);scene.add(me);rayTargets.push(me);
+      if(top){const t=new THREE.Mesh(new THREE.BoxGeometry(w+.02,.12,d+.02),top);t.position.set(me.position.x,y1+.02,me.position.z);scene.add(t);}
+      boxes.push({x0,x1,z0,z1,y0,h:y1});};
+    const runs=(chars,fn)=>{for(let r=0;r<GN;r++){let c=0;while(c<GN){if(chars.includes(g[r][c])){const ch=g[r][c];let e=c;while(e+1<GN&&g[r][e+1]===ch)e++;fn(c,e,r,ch);c=e+1;}else c++;}}};
+    runs('#',(c0,c1,r)=>addB(cx2w(c0)-1,cx2w(c1)+1,rz2w(r)-1,rz2w(r)+1,0,3.4,HEDGE,HEDGE2));
+    runs('S',(c0,c1,r)=>addB(cx2w(c0)-1,cx2w(c1)+1,rz2w(r)-1,rz2w(r)+1,0,4,STONE,MOSS));
+    runs('r',(c0,c1,r)=>addB(cx2w(c0)-1,cx2w(c1)+1,rz2w(r)-1,rz2w(r)+1,3.2,3.7,ROOF,null));
+    // kutular ve ağaçlar
+    const trees=[];
+    for(let r=0;r<GN;r++)for(let c=0;c<GN;c++){const ch=g[r][c],x=cx2w(c),z=rz2w(r);
+      if(ch==='C')addB(x-.95,x+.95,z-.95,z+.95,0,2.2,WOOD,WOOD2);
+      if(ch==='c')addB(x-.6,x+.6,z-.6,z+.6,0,1.2,WOOD,WOOD2);
+      if(ch==='T'){addB(x-.3,x+.3,z-.3,z+.3,0,3,mat(0x8a6440),null);trees.push([x,z,1.2]);}}
+    // tünel girişlerinde ahşap çerçeve hissi: çatı kenarlarına kirişler
+    // ağaçlar: içerdekiler + dış halka
+    for(let i=0;i<60;i++){const a=i/60*Math.PI*2+Math.random()*.05,rr=46+Math.random()*30;trees.push([Math.cos(a)*rr,Math.sin(a)*rr,.9+Math.random()*.8]);}
+    for(const [x,z,s] of trees){const t=new THREE.Group();
+      const tr=new THREE.Mesh(new THREE.CylinderGeometry(.28*s,.4*s,3*s,7),mat(0x8a6440));tr.position.y=1.5*s;t.add(tr);
+      const c1=new THREE.Mesh(new THREE.SphereGeometry(2*s,10,8),mat(0x5fb257));c1.position.y=4*s;t.add(c1);
+      const c2=new THREE.Mesh(new THREE.SphereGeometry(1.4*s,10,8),mat(0x6cc061));c2.position.set(.9*s,4.8*s,.4*s);t.add(c2);
+      const c3=new THREE.Mesh(new THREE.SphereGeometry(1.3*s,10,8),mat(0x55a84c));c3.position.set(-.9*s,4.4*s,-.5*s);t.add(c3);
+      t.position.set(x,0,z);scene.add(t);}
+    // tepeler
+    for(let i=0;i<10;i++){const a=i/10*Math.PI*2,h=new THREE.Mesh(new THREE.SphereGeometry(30+Math.random()*15,16,10),mat(i%2?0xa7dc8a:0x93d17a));h.scale.y=.35;h.position.set(Math.cos(a)*110,-4,Math.sin(a)*110);scene.add(h);}
+    // çiçekler
+    const fGeo=new THREE.SphereGeometry(.09,6,5),cols=[0xED93B1,0xffffff,0xFFE27A,0xCECBF6];
+    cols.forEach((col,ci)=>{const im=new THREE.InstancedMesh(fGeo,new THREE.MeshLambertMaterial({color:col}),120);const m4=new THREE.Matrix4();let n=0;
+      for(let k=0;k<400&&n<120;k++){const c=Math.floor(Math.random()*GN),r=Math.floor(Math.random()*GN);if(g[r][c]!=='.')continue;
+        m4.makeTranslation(cx2w(c)+(Math.random()-.5)*1.8,.09,rz2w(r)+(Math.random()-.5)*1.8);im.setMatrixAt(n++,m4);}
+      im.count=n;scene.add(im);});
+    // bulutlar
+    for(let i=0;i<9;i++){const cl=new THREE.Group();for(let k=0;k<4;k++){const s=new THREE.Mesh(new THREE.SphereGeometry(4+Math.random()*3,10,8),new THREE.MeshLambertMaterial({color:0xffffff,emissive:0xbbbbbb}));s.position.set(k*5-7,Math.random()*2,Math.random()*3);cl.add(s);}
+      const a=i/9*Math.PI*2;cl.position.set(Math.cos(a)*90,38+Math.random()*12,Math.sin(a)*90);scene.add(cl);}
+    // A / B tabelaları
+    const sign=(txt,x,z)=>{const c=document.createElement('canvas');c.width=c.height=128;const k=c.getContext('2d');k.fillStyle='rgba(255,255,255,.85)';k.beginPath();k.arc(64,64,56,0,7);k.fill();
+      k.lineWidth=8;k.strokeStyle='#7F77DD';k.stroke();k.fillStyle='#26215C';k.font='bold 80px Rubik,sans-serif';k.textAlign='center';k.textBaseline='middle';k.fillText(txt,64,70);
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthWrite:false}));sp.scale.set(2.4,2.4,1);sp.position.set(x,5.2,z);scene.add(sp);};
+    sign('A',cx2w(7.5),rz2w(7));sign('B',cx2w(31.5),rz2w(7));
+  }
 
   function loadThree(){
     if(window.THREE)return Promise.resolve(window.THREE);
@@ -517,23 +603,11 @@ const FPS=(()=>{
   function build(){
     renderer=new THREE.WebGLRenderer({canvas:cv3,antialias:true});
     renderer.setPixelRatio(Math.min(1.5,window.devicePixelRatio||1));
-    scene=new THREE.Scene();scene.background=new THREE.Color(0x9fdcff);scene.fog=new THREE.Fog(0xcfeeff,30,70);
-    camera=new THREE.PerspectiveCamera(75,16/10,.05,200);scene.add(camera);
+    scene=new THREE.Scene();scene.background=new THREE.Color(0x9fdcff);scene.fog=new THREE.Fog(0xd6f0ff,45,130);
+    camera=new THREE.PerspectiveCamera(75,16/10,.05,300);scene.add(camera);
     scene.add(new THREE.HemisphereLight(0xffffff,0x6cc061,.85));
     const sun=new THREE.DirectionalLight(0xfff2d0,.7);sun.position.set(10,20,6);scene.add(sun);
-    // zemin
-    const fl=new THREE.Mesh(new THREE.PlaneGeometry(44,44),new THREE.MeshLambertMaterial({color:0x7cc464}));fl.rotation.x=-Math.PI/2;scene.add(fl);rayTargets.push(fl);
-    const gr=new THREE.GridHelper(44,22,0x6cb055,0x6cb055);gr.position.y=.01;gr.material.opacity=.35;gr.material.transparent=true;scene.add(gr);
-    const addBox=(x,z,w,d,h,col)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:col}));m.position.set(x,h/2,z);scene.add(m);rayTargets.push(m);
-      const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:0x000000,transparent:true,opacity:.18}));e.position.copy(m.position);scene.add(e);
-      boxes.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,h});};
-    for(const b of MAP){addBox(...b);if(b[0]||b[1])addBox(-b[0],-b[1],b[2],b[3],b[4],b[5]);}
-    for(const [x,z,w,d] of [[0,-21,44,2],[0,21,44,2],[-21,0,2,44],[21,0,2,44]])addBox(x,z,w,d,4,0xdfe6f0);
-    // ağaçlar (sadece süs, dışarıda)
-    for(let i=0;i<16;i++){const a=i/16*Math.PI*2,r=28+(i%3)*4;const tr=new THREE.Group();
-      const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.3,.4,2.4,6),new THREE.MeshLambertMaterial({color:0x8a6440}));trunk.position.y=1.2;tr.add(trunk);
-      const top=new THREE.Mesh(new THREE.SphereGeometry(2,8,6),new THREE.MeshLambertMaterial({color:0x5fb257}));top.position.y=3.4;tr.add(top);
-      tr.position.set(Math.cos(a)*r,0,Math.sin(a)*r);scene.add(tr);}
+    buildMap();
     // rakip
     peerG=new THREE.Group();
     peerBody=new THREE.Mesh(new THREE.CylinderGeometry(.32,.36,1.25,10),new THREE.MeshLambertMaterial({color:0x378ADD}));peerBody.position.y=.63;peerG.add(peerBody);
@@ -700,11 +774,12 @@ const FPS=(()=>{
   // ---- çarpışma ----
   const R=.35,HT=1.75;
   function collide(axis){
-    for(const b of boxes){if(S.y>=b.h-.05)continue;
+    for(const b of boxes){if(S.y>=b.h-.05||S.y+HT<=(b.y0||0)+.02)continue;
       if(S.x+R>b.x0&&S.x-R<b.x1&&S.z+R>b.z0&&S.z-R<b.z1){
         if(axis==='x'){S.x=(S.x<(b.x0+b.x1)/2)?b.x0-R:b.x1+R;}else{S.z=(S.z<(b.z0+b.z1)/2)?b.z0-R:b.z1+R;}}}
   }
   function floorAt(){let f=0;for(const b of boxes)if(S.x+R>b.x0&&S.x-R<b.x1&&S.z+R>b.z0&&S.z-R<b.z1&&S.y>=b.h-.3)f=Math.max(f,b.h);return f;}
+  function ceilAt(){let c=1e9;for(const b of boxes)if((b.y0||0)>0&&S.x+R>b.x0&&S.x-R<b.x1&&S.z+R>b.z0&&S.z-R<b.z1&&S.y+HT<=b.y0+.3)c=Math.min(c,b.y0);return c;}
   // ---- durum ----
   const hpMe=()=>Math.max(0,100-((P&&P.rd===S.rd&&P.mt===S.mt)?P.dmg:0));
   const hpPeer=()=>Math.max(0,100-S.dmg);
@@ -847,7 +922,7 @@ const FPS=(()=>{
     }
     {const mv=alive&&S.ground&&((K.KeyW||K.KeyA||K.KeyS||K.KeyD)||Math.hypot(S.jx,S.jy)>.3)&&!(K.ShiftLeft||K.ShiftRight);
      if(mv){stepT-=dt;if(stepT<=0){stepT=.36;stepSnd(.22,0);}}else stepT=.05;}
-    S.vy-=20*dt;S.y+=S.vy*dt;const fl=floorAt();if(S.y<=fl){S.y=fl;S.vy=0;S.ground=true;}else S.ground=false;
+    S.vy-=20*dt;S.y+=S.vy*dt;{const ce=ceilAt();if(S.y+HT>ce){S.y=ce-HT;if(S.vy>0)S.vy=0;}}const fl=floorAt();if(S.y<=fl){S.y=fl;S.vy=0;S.ground=true;}else S.ground=false;
     if(S.firing&&alive&&!S.ended&&(S.locked||S.touch)){if(WEP[S.w].auto)shoot();else if(!S.fired){shoot();S.fired=true;}}
     // kamera
     camera.position.set(S.x,S.y+(alive?1.6:.4),S.z);
