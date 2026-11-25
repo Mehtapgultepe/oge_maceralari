@@ -100,6 +100,10 @@ button.big:active{transform:translateY(3px);box-shadow:0 3px 0 #3C3489}
 .fhp{position:absolute;left:16px;bottom:16px;display:grid;gap:4px;font-size:12px}.fhp b{font-size:30px;line-height:1}.fhp i{display:block;height:6px;width:100%;min-width:0;background:#5DCAA5;border-radius:3px;max-width:160px;transition:width .15s}
 .fhp{width:160px}
 .fammo{position:absolute;right:60px;bottom:16px;text-align:right;display:grid;gap:2px;font-size:12px}.fammo b{font-size:26px;line-height:1}
+.ftimer{background:rgba(38,33,92,.55);padding:2px 12px;border-radius:999px;font-size:15px}.ftimer.bomb{background:rgba(226,75,74,.85)}.ftimer[hidden]{display:none}
+.fprog{position:absolute;left:50%;top:62%;transform:translateX(-50%);display:grid;gap:4px;justify-items:center;font-size:13px}.fprog b{display:block;width:220px;height:8px;border-radius:4px;background:rgba(0,0,0,.35);overflow:hidden}.fprog i{display:block;height:100%;width:0;background:#FAC775}.fprog[hidden]{display:none}
+.fhint{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(38,33,92,.55);padding:4px 14px;border-radius:999px;font-size:13px;white-space:nowrap}.fhint[hidden]{display:none}
+@media (any-pointer:coarse){.fhint{bottom:auto;top:36%}}
 .fban{position:absolute;left:50%;top:30%;transform:translateX(-50%);background:rgba(38,33,92,.6);padding:10px 22px;border-radius:14px;font-size:clamp(16px,2.4vw,26px);white-space:nowrap}
 .fban[hidden]{display:none}
 .flock{pointer-events:auto;position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);display:grid;gap:6px;font-size:18px;padding:14px 22px;background:rgba(255,255,255,.88);border-radius:16px;max-width:90%}
@@ -130,9 +134,9 @@ body{touch-action:manipulation;-webkit-text-size-adjust:100%}
 .fjoy i{position:absolute;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.45);border:2px solid rgba(255,255,255,.85);left:70px;bottom:70px;transform:translate(-50%,50%);display:block}
 .fjoy::before{content:"";position:absolute;left:70px;bottom:70px;width:130px;height:130px;border-radius:50%;border:2px dashed rgba(255,255,255,.6);transform:translate(-50%,50%)}
 .flook{position:absolute;right:0;top:0;width:58%;height:100%;pointer-events:auto;touch-action:none}
-.fbtns{position:absolute;right:62px;bottom:64px;display:grid;grid-template-columns:repeat(4,auto);gap:10px;align-items:end;pointer-events:none}
+.fbtns{position:absolute;right:62px;bottom:64px;display:grid;grid-template-columns:repeat(5,auto);gap:10px;align-items:end;pointer-events:none}
 .fbtns button{pointer-events:auto;width:56px;height:56px;min-height:0;padding:0;border-radius:50%;background:rgba(255,255,255,.4);border:2px solid rgba(255,255,255,.85);color:#fff;font-size:20px;text-shadow:0 1px 3px rgba(0,0,0,.5);touch-action:none}
-.fbtns .fire{grid-column:4;grid-row:1/3;width:84px;height:84px;background:rgba(226,75,74,.55);font-size:16px}
+.fbtns .fire{grid-column:5;grid-row:1/3;width:84px;height:84px;background:rgba(226,75,74,.55);font-size:16px}
 @media (any-pointer:coarse){.fammo{bottom:auto;top:56px;right:16px}.fhp{bottom:auto;top:56px}}
 
 /* ---- TELEFON ---- */
@@ -194,15 +198,16 @@ body{touch-action:manipulation;-webkit-text-size-adjust:100%}
     <canvas id="cv3" hidden></canvas>
     <div class="fhud" id="fhud" hidden>
       <div class="fx"></div><div class="fscope" hidden></div><div class="fhurt"></div>
-      <div class="ftop"><span class="fsc"></span><div class="fphp"><span></span><i></i></div></div>
+      <div class="ftop"><span class="fsc"></span><span class="ftimer" hidden></span><div class="fphp"><span></span><i></i></div></div>
+      <div class="fprog" hidden><span></span><b><i></i></b></div><div class="fhint" hidden></div>
       <div class="fhp"><span>Can</span><b>100</b><i></i></div>
       <div class="fammo"><span></span><b></b></div>
       <div class="fban" hidden></div>
-      <button class="flock" hidden>Oynamak için tıkla<small>WASD hareket · Fare nişan · Tık ateş · Sağ tık dürbün · R doldur · 1 2 3 silah · 4 karambit · 5 kelebek · Y incele · Space zıpla · Shift sessiz yürü · M ses · Esc imleç</small></button>
+      <button class="flock" hidden>Oynamak için tıkla<small>WASD hareket · Fare nişan · Tık ateş · Sağ tık dürbün · R doldur · 1 2 3 silah · 4 karambit · 5 kelebek · Y incele · E bomba kur/çöz · Space zıpla · Shift sessiz yürü · M ses · Esc imleç</small></button>
       <button class="frem primary" hidden>Rövanş</button>
       <button class="fmute" id="fmute" aria-label="Sesi kapat">🔊</button>
       <div class="ftouch"><div class="fjoy" id="fjoy"><i id="fknob"></i></div><div class="flook" id="flook"></div>
-        <div class="fbtns"><button id="fbW" aria-label="Silah değiştir">⇄</button><button id="fbY" aria-label="İncele">✦</button><button id="fbR" aria-label="Doldur">R</button><button id="fbS" aria-label="Dürbün">◎</button><button id="fbJ" aria-label="Zıpla">▲</button><button id="fbF" class="fire" aria-label="Ateş">Ateş</button></div></div>
+        <div class="fbtns"><button id="fbW" aria-label="Silah değiştir">⇄</button><button id="fbY" aria-label="İncele">✦</button><button id="fbR" aria-label="Doldur">R</button><button id="fbS" aria-label="Dürbün">◎</button><button id="fbJ" aria-label="Zıpla">▲</button><button id="fbE" aria-label="Bomba kur ya da çöz">E</button><button id="fbF" class="fire" aria-label="Ateş">Ateş</button></div></div>
     </div>
     <div class="tpad" id="tpad"><div class="tl"><button data-k="L" aria-label="Sol">◀</button><button data-k="R" aria-label="Sağ">▶</button></div><div class="tr"><button data-k="D" class="t-rope" aria-label="Sabitlen">▼</button><button data-k="Z" class="t-mag" aria-label="Çek">Çek</button><button data-k="X" class="t-mag" aria-label="İt">İt</button><button data-k="U" class="tbig" aria-label="Zıpla">▲</button></div></div>
     <div class="rot" id="rot">Daha rahat oynamak için tableti yan çevir</div>
@@ -244,7 +249,7 @@ const GAMES=[
  {name:'İple Bağlı',roles:['Kırmızı uç','Mavi uç'],desc:'İkiniz bir iple bağlısınız. Birbirinizin omzuna çıkın, biriniz ▼ ile sabitlenince öbürü ▲ ile ipe tırmansın.'},
  {name:'Mıknatıs İkizler',roles:['Artı (+)','Eksi (−)'],desc:'Z ile ortağına doğru çekilirsin, X ile ondan itilirsin. Birbirinizi duvarların üstüne fırlatın, uçurumları uçarak geçin.'},
  {name:'Ateş ve Su',roles:['Ateş','Su'],desc:'Ateş lavda, Su suda yürür; yeşil çamur ikinizi de yakar. Kendi renginizdeki elmasları toplayın, düğme ve kollarla kapıları açın, ikiniz de kendi kapınıza ulaşın.'},
- {name:'1v1 Kapışma',roles:['Kırmızı takım','Mavi takım'],fps:true,desc:'3D birinci şahıs kapışma. İlk 5 raundu alan kazanır. Kafadan vuruş çok daha fazla hasar verir.'}
+ {name:'1v1 Kapışma',roles:['Kırmızı takım','Mavi takım'],fps:true,desc:'3D birinci şahıs kapışma, bomba modlu. Kırmızı bombayı A ya da B’ye kurar, Mavi korur ve çözer. İlk 5 raundu alan kazanır.'}
 ];
 function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -506,24 +511,18 @@ const FPS=(()=>{
     const g=[];for(let r=0;r<GN;r++)g.push(new Array(GN).fill('#'));
     const carve=(c0,c1,r0,r1,ch)=>{for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)g[r][c]=ch||',';};
     const put=(c,r,ch)=>{g[r][c]=ch;};
-    carve(12,27,33,38,'.');           // Kırmızı (T) spawn
-    carve(14,25,1,6,'.');             // Mavi (CT) spawn
-    carve(2,13,2,12,'.');             // A bölgesi
-    carve(26,37,2,12,'.');            // B bölgesi
-    carve(4,12,33,35);carve(2,4,13,35);          // Uzun A
-    put(4,24,'S');put(4,25,'S');put(2,24,'S');put(2,25,'S');     // uzun A kapıları (daralma)
-    carve(18,21,7,32);                // orta
-    put(18,14,'S');put(18,15,'S');put(21,14,'S');put(21,15,'S'); // orta çift kapı
-    carve(10,17,18,20);carve(9,11,13,20);        // kısa A (catwalk)
-    carve(28,32,33,35);carve(33,36,13,35);       // B tüneli
-    carve(22,25,9,10);                // ortadan B'ye
-    carve(22,32,26,27,'r');carve(33,36,18,28,'r'); // kapalı tünel bölümleri
-    for(let r=1;r<=4;r++){put(13,r,'#');put(26,r,'#');}  // spawn ile bölgeler arası çitler (alttan geçit kalır)
-    // siperler, ağaçlar
-    [[5,5,'C'],[6,5,'C'],[10,8,'c'],[3,10,'c'],[12,3,'T'],[7,10,'c'],
-     [30,6,'C'],[31,6,'C'],[35,9,'c'],[28,4,'c'],[36,3,'T'],[33,10,'c'],
-     [19,22,'C'],[20,11,'c'],[16,34,'c'],[13,37,'T'],[26,37,'T'],[23,35,'c'],
-     [15,2,'T'],[24,2,'T'],[3,16,'c'],[3,29,'C'],[35,31,'c'],[11,19,'c']].forEach(([c,r,ch])=>put(c,r,ch));
+    carve(2,37,30,37,'.');            // Kırmızı spawn (geniş)
+    carve(3,9,12,29);                 // sol yol -> A
+    carve(17,22,9,29);                // orta yol -> Mavi spawn
+    carve(30,36,12,29);               // sağ yol -> B
+    carve(2,14,2,11,'.');             // A bölgesi
+    carve(25,37,2,11,'.');            // B bölgesi
+    carve(15,24,2,8,'.');             // Mavi spawn
+    for(let r=2;r<=4;r++){put(14,r,'#');put(25,r,'#');}
+    [[5,18,'c'],[7,24,'C'],[19,20,'C'],[21,14,'c'],[33,17,'c'],[32,24,'C'],
+     [6,6,'C'],[7,6,'C'],[11,9,'c'],[4,9,'c'],[12,3,'T'],
+     [32,6,'C'],[33,6,'C'],[28,9,'c'],[35,9,'c'],[36,3,'T'],
+     [4,36,'T'],[35,36,'T'],[12,32,'c'],[27,32,'c'],[16,3,'T'],[23,3,'T']].forEach(([c,r,ch])=>put(c,r,ch));
     return g;}
   const cx2w=c=>(c-(GN-1)/2)*CS,rz2w=r=>(r-(GN-1)/2)*CS;
   function buildMap(){
@@ -585,7 +584,8 @@ const FPS=(()=>{
     const sign=(txt,x,z)=>{const c=document.createElement('canvas');c.width=c.height=128;const k=c.getContext('2d');k.fillStyle='rgba(255,255,255,.85)';k.beginPath();k.arc(64,64,56,0,7);k.fill();
       k.lineWidth=8;k.strokeStyle='#7F77DD';k.stroke();k.fillStyle='#26215C';k.font='bold 80px Rubik,sans-serif';k.textAlign='center';k.textBaseline='middle';k.fillText(txt,64,70);
       const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthWrite:false}));sp.scale.set(2.4,2.4,1);sp.position.set(x,5.2,z);scene.add(sp);};
-    sign('A',cx2w(7.5),rz2w(7));sign('B',cx2w(31.5),rz2w(7));
+    sign('A',cx2w(8),rz2w(6.5));sign('B',cx2w(31),rz2w(6.5));
+    buildBomb();
   }
 
   function loadThree(){
@@ -783,8 +783,52 @@ const FPS=(()=>{
   // ---- durum ----
   const hpMe=()=>Math.max(0,100-((P&&P.rd===S.rd&&P.mt===S.mt)?P.dmg:0));
   const hpPeer=()=>Math.max(0,100-S.dmg);
+  // ---- bomba modu ----
+  const SITES=[{n:'A',c0:2,c1:14,r0:2,r1:11},{n:'B',c0:25,c1:37,r0:2,r1:11}];
+  const BOMB_T=35,PLANT_T=3.2,DEF_T=5,ROUND_T=90;
+  const Bm={planted:false,x:0,z:0,left:BOMB_T,exploded:false,defused:false,plantP:0,defP:0,roundLeft:ROUND_T,beepT:0,boomT:0,site:''};
+  let bombG=null,bombLight=null,boomM=null;
+  function buildBomb(){bombG=new THREE.Group();const body=new THREE.Mesh(new THREE.BoxGeometry(.5,.22,.32),mat(0x3a3f2a));body.position.y=.11;bombG.add(body);
+    const pad=new THREE.Mesh(new THREE.BoxGeometry(.22,.02,.16),mat(0x9fb0c8));pad.position.set(-.06,.23,0);bombG.add(pad);
+    for(let i=0;i<3;i++){const st=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.3,8),mat([0xE24B4A,0xFAC775,0x378ADD][i]));st.rotation.z=Math.PI/2;st.position.set(0,.12,-.17+i*.01);st.position.z=-.1+i*.1;st.position.y=.24;bombG.add(st);}
+    bombLight=new THREE.Mesh(new THREE.SphereGeometry(.04,8,6),new THREE.MeshBasicMaterial({color:0xff2a2a}));bombLight.position.set(.17,.25,0);bombG.add(bombLight);
+    bombG.visible=false;scene.add(bombG);
+    boomM=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),new THREE.MeshBasicMaterial({color:0xffa040,transparent:true,opacity:.0}));boomM.visible=false;scene.add(boomM);}
+  const isT=()=>role===0;
+  const peerOk=()=>P&&P.rd===S.rd&&P.mt===S.mt;
+  // paylaşılan durum: Kırmızı (T) bombayı ve süreyi, Mavi (CT) çözmeyi yönetir
+  function sh(){const p=peerOk()?P:null;
+    if(isT())return{planted:Bm.planted,x:Bm.x,z:Bm.z,left:Bm.left,exploded:Bm.exploded,roundLeft:Bm.roundLeft,defused:!!(p&&p.df),defP:p?p.dp||0:0,plantP:Bm.plantP};
+    return{planted:!!(p&&p.bp),x:p?p.bx:0,z:p?p.bz:0,left:p?p.bl:BOMB_T,exploded:!!(p&&p.ex),roundLeft:p?p.rt:ROUND_T,defused:Bm.defused,defP:Bm.defP,plantP:p?p.pp||0:0};}
+  function inSite(){for(const s of SITES){const x0=cx2w(s.c0)-1,x1=cx2w(s.c1)+1,z0=rz2w(s.r0)-1,z1=rz2w(s.r1)+1;if(S.x>x0&&S.x<x1&&S.z>z0&&S.z<z1)return s.n;}return '';}
+  function bombTick(dt,alive,moving){
+    const B=sh(),hold=!!K.KeyE&&alive&&S.ground&&!moving&&!S.ended;
+    if(isT()){
+      if(!Bm.planted&&!S.ended){Bm.roundLeft=Math.max(0,Bm.roundLeft-dt);
+        const st=inSite();if(hold&&st){if(Bm.plantP===0)plantSnd();Bm.plantP+=dt/PLANT_T;if(Bm.plantP>=1){Bm.planted=true;Bm.x=S.x;Bm.z=S.z;Bm.left=BOMB_T;Bm.site=st;Bm.plantP=0;banner('Bomba '+st+' bölgesine kuruldu',2);}}
+        else Bm.plantP=0;}
+      if(Bm.planted&&!Bm.exploded&&!B.defused&&!S.ended){Bm.left=Math.max(0,Bm.left-dt);if(Bm.left<=0)Bm.exploded=true;}
+    } else {
+      if(B.planted&&!B.exploded&&!Bm.defused&&!S.ended){const near=Math.hypot(S.x-B.x,S.z-B.z)<1.8;
+        if(hold&&near){if(Bm.defP===0)defuseSnd();Bm.defP+=dt/DEF_T;if(Bm.defP>=1){Bm.defused=true;Bm.defP=1;}}else Bm.defP=0;}
+    }
+    // bomba görseli + bip
+    if(bombG){bombG.visible=B.planted&&!B.exploded;if(bombG.visible){bombG.position.set(B.x,floorAtXZ(B.x,B.z),B.z);
+      const iv=Math.max(.12,Math.min(1,B.left/BOMB_T))*1.0;Bm.beepT-=dt;if(Bm.beepT<=0&&!B.defused){Bm.beepT=iv;bombBeep(B);}
+      bombLight.visible=Bm.beepT>iv-.1||B.defused?!B.defused:false;}}
+    if(B.exploded&&Bm.boomT===0){Bm.boomT=1.6;boomSnd(B);}
+    if(Bm.boomT>0&&boomM){Bm.boomT=Math.max(0,Bm.boomT-dt);const q=1-Bm.boomT/1.6;boomM.visible=Bm.boomT>0;boomM.position.set(B.x,1,B.z);const sc=1+q*16;boomM.scale.set(sc,sc*.7,sc);boomM.material.opacity=.85*(1-q);}
+  }
+  function floorAtXZ(x,z){let f=0;for(const b of boxes)if(x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&!(b.y0>0))f=Math.max(f,b.h);return f;}
+  function roundWinner(myHp,peerHp){ // 'T' | 'CT' | 'draw' | null
+    const B=sh(),tHp=isT()?myHp:peerHp,ctHp=isT()?peerHp:myHp;
+    if(B.exploded)return 'T';if(B.defused)return 'CT';
+    if(ctHp<=0&&tHp<=0)return B.planted?'T':'draw';
+    if(ctHp<=0)return 'T';if(tHp<=0&&!B.planted)return 'CT';
+    if(!B.planted&&B.roundLeft<=0)return 'CT';return null;}
+
   function spawn(){const s=SP[role];S.x=s.x;S.z=s.z;S.y=0;S.vy=0;S.yaw=s.yaw;S.pitch=0;S.ammo=[30,12,5,0,0];S.relT=0;S.insT=0;S.drawT=.45;S.zoom=false;S.lastHp=100;}
-  function newRound(rd,mt){S.rd=rd;S.mt=mt;S.dmg=0;S.ended=false;spawn();banner('Raund '+rd,1.2);}
+  function newRound(rd,mt){S.rd=rd;S.mt=mt;S.dmg=0;S.ended=false;Object.assign(Bm,{planted:false,left:BOMB_T,exploded:false,defused:false,plantP:0,defP:0,roundLeft:ROUND_T,beepT:0,boomT:0,site:''});spawn();banner('Raund '+rd+(isT()?' · Bombayı A ya da B\'ye kur':' · A ve B bölgesini savun'),2);}
   function banner(t,d){S.banner=t;S.bannerT=d;}
   function scores(){let a=0,b=0;for(const k in S.wins){if(S.wins[k]==='me')a++;else if(S.wins[k]==='peer')b++;}return[a,b];}
   // ---- ateş ----
@@ -890,6 +934,11 @@ const FPS=(()=>{
     updateArms();
   }
   function kick(w){V.kv+= w.melee?0:(S.w===2?1.6:S.w===1?.9:.55);V.krv+= w.melee?0:(S.w===2?-6:S.w===1?-4.5:-2.4);}
+  function bombBeep(B){if(!ac())return;const dx=B.x-S.x,dz=B.z-S.z,d=Math.hypot(dx,dz)||1,rx=Math.cos(S.yaw),rz=-Math.sin(S.yaw);const out=outNode(Math.max(.08,.6-d/60),(dx*rx+dz*rz)/d*.8);tone(out,AC.currentTime,.09,'square',1900,1900,.35);}
+  function boomSnd(B){if(!ac())return;const t=AC.currentTime,d=Math.hypot(B.x-S.x,B.z-S.z),out=outNode(Math.max(.4,1.2-d/50),0);
+    tone(out,t,1.6,'sine',70,22,1.4);noise(out,t,1.8,'lowpass',2600,120,1.3);noise(out,t+.05,.4,'bandpass',900,200,.8);}
+  function plantSnd(){if(!ac())return;const t=AC.currentTime;for(let i=0;i<6;i++){const out=outNode(.25,0);tone(out,t+i*.45,.05,'square',1200+(i%3)*300,0,.3);}}
+  function defuseSnd(){if(!ac())return;const t=AC.currentTime;for(let i=0;i<8;i++){const out=outNode(.22,0);noise(out,t+i*.55,.06,'highpass',2800,0,.6);clickSnd(t+i*.55+.1,3600,.2,.02);}}
   function swingSnd(vol,pan){if(!ac())return;const t=AC.currentTime,out=outNode(vol,pan);noise(out,t,.18,'bandpass',600,3200,.8,1.2);}
   function stabSnd(){if(!ac())return;const t=AC.currentTime,out=outNode(.7,0);noise(out,t,.08,'lowpass',1400,300,1);tone(out,t,.1,'sine',180,70,.8);}
   function wallSnd(){if(!ac())return;const t=AC.currentTime,out=outNode(.5,0);tone(out,t,.12,'triangle',2400,1800,.35);noise(out,t,.05,'highpass',3000,0,.5);}
@@ -901,11 +950,14 @@ const FPS=(()=>{
     const myHp=hpMe(),peerHp=hpPeer(),alive=myHp>0;
     if(myHp<S.lastHp){S.hurtT=.35;hurtSnd();}S.lastHp=myHp;
     // raund sonu
-    if(P&&!S.ended&&!S.matchOver&&(myHp<=0||peerHp<=0)){S.ended=true;S.endT=3;
-      S.wins[S.mt+':'+S.rd]=myHp<=0&&peerHp<=0?'draw':myHp<=0?'peer':'me';
+    {const movingNow=(K.KeyW||K.KeyA||K.KeyS||K.KeyD)||Math.hypot(S.jx,S.jy)>.3;if(P)bombTick(dt,alive,movingNow);}
+    const rw=P&&!S.ended&&!S.matchOver?roundWinner(myHp,peerHp):null;
+    if(rw){S.ended=true;S.endT=4;const meWin=rw==='draw'?null:((rw==='T')===isT());
+      S.wins[S.mt+':'+S.rd]=meWin===null?'draw':meWin?'me':'peer';
+      const B=sh(),why=B.exploded?'Bomba patladı':B.defused?'Bomba çözüldü':(!B.planted&&B.roundLeft<=0)?'Süre doldu':'';
       const [a,b]=scores();
       if(a>=5||b>=5){S.matchOver=true;banner(a>=5?'Maçı kazandın!':'Maçı '+peerName+' kazandı',99);showRematch(true);}
-      else banner(myHp<=0?peerName+' raundu aldı':'Raundu aldın!',3);}
+      else banner((why?why+' · ':'')+(meWin===null?'Berabere':meWin?'Raundu aldın!':peerName+' raundu aldı'),4);}
     if(S.ended&&!S.matchOver){S.endT-=dt;if(S.endT<=0)newRound(S.rd+1,S.mt);}
     if(S.bannerT>0&&S.bannerT<90)S.bannerT-=dt;
     if(S.hitT>0)S.hitT-=dt;if(S.hurtT>0)S.hurtT-=dt;if(S.cool>0)S.cool-=dt;
@@ -946,6 +998,15 @@ const FPS=(()=>{
   // ---- HUD ----
   let hudEl=null;
   function hud(myHp,peerHp){
+    {const B=sh(),tm=hudEl.querySelector('.ftimer'),pg=hudEl.querySelector('.fprog'),hint=hudEl.querySelector('.fhint');
+     const fmt=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+     if(!P){tm.hidden=true;pg.hidden=true;hint.hidden=true;}
+     else{tm.hidden=false;tm.classList.toggle('bomb',B.planted&&!B.defused);tm.textContent=B.planted?(B.defused?'Bomba çözüldü':'💣 '+fmt(B.left)):fmt(B.roundLeft);
+      const prog=isT()?Bm.plantP:B.defP,lbl=isT()?'Bomba kuruluyor…':'Bomba çözülüyor…';
+      const showP=(isT()&&Bm.plantP>0)||(!isT()&&Bm.defP>0&&!Bm.defused);pg.hidden=!showP;if(showP){pg.querySelector('i').style.width=Math.min(100,prog*100)+'%';pg.querySelector('span').textContent=lbl;}
+      let h='';if(!S.ended&&myHp>0){if(isT()&&!B.planted){const st=inSite();h=st?(st+' bölgesindesin · kurmak için E\'ye basılı tut, kıpırdama'):'Bombayı kurmak için A ya da B bölgesine git';}
+        else if(!isT()&&B.planted&&!B.defused){h=Math.hypot(S.x-B.x,S.z-B.z)<1.8?'Çözmek için E\'ye basılı tut, kıpırdama':'Bomba kuruldu! Bul ve çöz';}}
+      hint.hidden=!h;hint.textContent=h;}}
     if(!hudEl)return;const w=WEP[S.w],[a,b]=scores();
     hudEl.querySelector('.fhp b').textContent=myHp;hudEl.querySelector('.fhp i').style.width=myHp+'%';
     hudEl.querySelector('.fammo b').textContent=w.melee?'∞':S.relT>0?'Dolduruluyor…':S.ammo[S.w]+' / '+w.mag;
@@ -976,11 +1037,11 @@ const FPS=(()=>{
   function setPeer(o,name,skin){
     if(!o){P=null;return;}
     if(!P){P={rx:+o.fx||0,ry:+o.fy||0,rz:+o.fz||0};}
-    Object.assign(P,{x:+o.fx||0,y:+o.fy||0,z:+o.fz||0,yaw:+o.fyaw||0,dmg:Math.max(0,Math.min(100,+o.fd||0)),rd:+o.frd||1,mt:+o.fmt||1,sn:+o.fsn||0,w:+o.fw||0});
+    Object.assign(P,{x:+o.fx||0,y:+o.fy||0,z:+o.fz||0,yaw:+o.fyaw||0,dmg:Math.max(0,Math.min(100,+o.fd||0)),rd:+o.frd||1,mt:+o.fmt||1,sn:+o.fsn||0,w:+o.fw||0,bp:+o.bp||0,bx:+o.bx||0,bz:+o.bz||0,bl:Number.isFinite(+o.bl)?+o.bl:35,ex:+o.ex||0,rt:Number.isFinite(+o.rt)?+o.rt:90,pp:+o.pp||0,df:+o.df||0,dp:+o.dp||0});
     peerName=name||peerName;
     if(skin!==peerSkin&&ready){peerSkin=skin;peerSprite.material.map=skinTexture(skin);peerSprite.material.needsUpdate=true;}
   }
-  function state(){return{fx:+S.x.toFixed(2),fy:+S.y.toFixed(2),fz:+S.z.toFixed(2),fyaw:+S.yaw.toFixed(3),fd:S.dmg,frd:S.rd,fmt:S.mt,fsn:S.sn,fw:S.w};}
+  function state(){return{fx:+S.x.toFixed(2),fy:+S.y.toFixed(2),fz:+S.z.toFixed(2),fyaw:+S.yaw.toFixed(3),fd:S.dmg,frd:S.rd,fmt:S.mt,fsn:S.sn,fw:S.w,bp:Bm.planted?1:0,bx:+Bm.x.toFixed(2),bz:+Bm.z.toFixed(2),bl:+Bm.left.toFixed(2),ex:Bm.exploded?1:0,rt:+Bm.roundLeft.toFixed(1),pp:+Bm.plantP.toFixed(2),df:Bm.defused?1:0,dp:+Bm.defP.toFixed(2)};}
   function bindStage(){
     const cv=document.getElementById('cv3');
     cv.addEventListener('click',()=>{if(!active)return;try{const r=cv.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(e){}});
@@ -1009,6 +1070,7 @@ const FPS=(()=>{
       if(up)['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,up));b.addEventListener('contextmenu',e=>e.preventDefault());};
     tb('fbF',()=>{S.firing=true;S.fired=false;},()=>{S.firing=false;});
     tb('fbJ',()=>{S.tj=true;});
+    tb('fbE',()=>{K.KeyE=true;},()=>{K.KeyE=false;});
     tb('fbR',()=>reload());
     tb('fbW',()=>swap((S.w+1)%5));
     tb('fbY',()=>inspect());
@@ -1202,7 +1264,7 @@ const HELP=[
  ['▼ (S) yerdeyken seni sabitler.','Ortağın sabitken havada ▲ basılı tut: ipe tırmanırsın.','Birbirinizin omzuna çıkabilirsiniz.'],
  ['Z basılı: ortağına çekilirsin. X basılı: ondan itilirsin.','Ortağının omzundayken X seni yukarı fırlatır.','Menzil bölümler ilerledikçe kısalır.'],
  ['Ateş lavda, Su suda yürür; yeşil çamur ikinizi de yakar.','Ateş kırmızı, Su mavi elmasları toplar.','Düğmeler üstünde durdukça, kollar bir kez çekilince kapı açar.','İkiniz de kendi kapınıza ulaşın: kırmızı Ateş’in, mavi Su’nun.'],
- ['WASD hareket, fare ile nişan, tıkla ateş et.','1 tüfek, 2 tabanca, 3 keskin nişancı, 4 karambit, 5 kelebek; sağ tık dürbün ya da güçlü bıçak darbesi, R doldur.','Y ile elindekini incele: karambit parmağında döner, kelebek açılıp kapanır. Arkadan bıçak darbesi çok daha ölümcül.','Kafadan vuruş çok daha fazla hasar verir. İlk 5 raundu alan kazanır.','Rakibin silah ve ayak seslerini yönünden duyarsın; Shift ile sessiz yürü. M ses aç/kapa.','Esc imleci serbest bırakır; tekrar tıklayınca oyuna dönersin.']
+ ['WASD hareket, fare ile nişan, tıkla ateş et.','1 tüfek, 2 tabanca, 3 keskin nişancı, 4 karambit, 5 kelebek; sağ tık dürbün ya da güçlü bıçak darbesi, R doldur.','Y ile elindekini incele: karambit parmağında döner, kelebek açılıp kapanır. Arkadan bıçak darbesi çok daha ölümcül.','Kırmızı takım bombayı A ya da B bölgesine E basılı tutarak kurar (3 sn); Mavi bombanın yanında E ile çözer (5 sn). Bomba 35 sn’de patlar, raund 90 sn.','Kafadan vuruş çok daha fazla hasar verir. İlk 5 raundu alan kazanır.','Rakibin silah ve ayak seslerini yönünden duyarsın; Shift ile sessiz yürü. M ses aç/kapa.','Esc imleci serbest bırakır; tekrar tıklayınca oyuna dönersin.']
 ];
 let lastHelpG=-1,helpTimer=0;
 function showHelp(g){
